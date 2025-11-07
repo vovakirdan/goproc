@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	goprocv1 "goproc/api/proto/goproc/v1"
@@ -23,11 +24,13 @@ func init() {
 var (
 	addTags   []string
 	addGroups []string
+	addName   string
 )
 
 func init() {
 	cmdAdd.Flags().StringSliceVar(&addTags, "tag", nil, "Tag to assign to the process (repeatable)")
 	cmdAdd.Flags().StringSliceVar(&addGroups, "group", nil, "Group to assign to the process (repeatable)")
+	cmdAdd.Flags().StringVar(&addName, "name", "", "Unique name to assign to the process")
 }
 
 var cmdAdd = &cobra.Command{
@@ -56,11 +59,13 @@ var cmdAdd = &cobra.Command{
 
 		tags := append([]string(nil), addTags...)
 		groups := append([]string(nil), addGroups...)
+		name := strings.TrimSpace(addName)
 
 		resp, err := client.Add(ctx, &goprocv1.AddRequest{
 			Pid:    int32(pid),
 			Tags:   tags,
 			Groups: groups,
+			Name:   name,
 		})
 		if err != nil {
 			if st, ok := status.FromError(err); ok && st.Code() == codes.AlreadyExists {

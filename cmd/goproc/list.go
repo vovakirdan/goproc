@@ -19,6 +19,7 @@ var (
 	listTagsAll    []string
 	listGroupsAny  []string
 	listGroupsAll  []string
+	listNames      []string
 	listAliveOnly  bool
 	listPIDs       []int
 	listIDs        []int
@@ -31,6 +32,7 @@ func init() {
 	cmdList.Flags().StringSliceVar(&listTagsAll, "tag-all", nil, "Match processes that have all of these tags")
 	cmdList.Flags().StringSliceVar(&listGroupsAny, "group", nil, "Match processes that are in any of these groups")
 	cmdList.Flags().StringSliceVar(&listGroupsAll, "group-all", nil, "Match processes that are in all of these groups")
+	cmdList.Flags().StringSliceVar(&listNames, "name", nil, "Match processes with these exact names")
 	cmdList.Flags().BoolVar(&listAliveOnly, "alive", false, "Only show processes currently considered alive")
 	cmdList.Flags().IntSliceVar(&listPIDs, "pid", nil, "Filter by PID (repeatable)")
 	cmdList.Flags().IntSliceVar(&listIDs, "id", nil, "Filter by registry ID (repeatable)")
@@ -55,11 +57,21 @@ var cmdList = &cobra.Command{
 		}
 		defer conn.Close()
 
+		cleanNames := make([]string, 0, len(listNames))
+		for _, name := range listNames {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				return errors.New("name filters must not be empty")
+			}
+			cleanNames = append(cleanNames, name)
+		}
+
 		req := &goprocv1.ListRequest{
 			TagsAny:    append([]string(nil), listTagsAny...),
 			TagsAll:    append([]string(nil), listTagsAll...),
 			GroupsAny:  append([]string(nil), listGroupsAny...),
 			GroupsAll:  append([]string(nil), listGroupsAll...),
+			Names:      cleanNames,
 			AliveOnly:  listAliveOnly,
 			TextSearch: listTextSearch,
 		}
@@ -88,11 +100,16 @@ var cmdList = &cobra.Command{
 		}
 
 		for _, proc := range resp.GetProcs() {
+			name := proc.GetName()
+			if name == "" {
+				name = "-"
+			}
 			fmt.Fprintf(
 				os.Stdout,
-				"[id=%d] pid=%d alive=%t cmd=%s tags=[%s] groups=[%s]\n",
+				"[id=%d] pid=%d name=%s alive=%t cmd=%s tags=[%s] groups=[%s]\n",
 				proc.GetId(),
 				proc.GetPid(),
+				name,
 				proc.GetAlive(),
 				proc.GetCmd(),
 				strings.Join(proc.GetTags(), ","),

@@ -17,6 +17,7 @@ type Proc struct {
 	PID      int       `json:"pid"`
 	PGID     int       `json:"pgid"`
 	Cmd      string    `json:"cmd"`
+	Name     string    `json:"name"`
 	Alive    bool      `json:"alive"`
 	AddedAt  time.Time `json:"added_at"`
 	LastSeen time.Time `json:"last_seen"`
@@ -32,5 +33,6 @@ type ListFilter struct {
 	AliveOnly  bool
 	PIDs       []int
 	IDs        []ProcID
+	Names      []string
 	TextSearch string // naive substring search over Cmd
 }

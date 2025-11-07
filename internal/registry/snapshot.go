@@ -39,6 +39,7 @@ func (r *Registry) loadSnapshot(path string) error {
 	r.nextID = ProcID(s.NextID)
 	r.byID = make(map[ProcID]*Proc)
 	r.byPID = make(map[int]ProcID)
+	r.byName = make(map[string]ProcID)
 	r.byTag = make(map[string]map[ProcID]struct{})
 	r.byGroup = make(map[string]map[ProcID]struct{})
 
@@ -48,6 +49,9 @@ func (r *Registry) loadSnapshot(path string) error {
 		proc := p
 		r.byID[proc.ID] = &proc
 		r.byPID[proc.PID] = proc.ID
+		if proc.Name != "" {
+			r.byName[proc.Name] = proc.ID
+		}
 		for _, t := range proc.Meta.Tags {
 			if _, ok := r.byTag[t]; !ok {
 				r.byTag[t] = make(map[ProcID]struct{})

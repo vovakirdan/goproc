@@ -19,7 +19,8 @@ var (
 	rmGroups      []string
 	rmPIDs        []int
 	rmIDs         []int
-	rmNameMatch   string
+	rmNames       []string
+	rmSearch      string
 	rmRemoveAll   bool
 	rmTimeoutSecs int
 )
@@ -31,7 +32,8 @@ func init() {
 	cmdRm.Flags().StringSliceVar(&rmGroups, "group", nil, "Match processes that belong to any of these groups")
 	cmdRm.Flags().IntSliceVar(&rmPIDs, "pid", nil, "Filter by PID (repeatable)")
 	cmdRm.Flags().IntSliceVar(&rmIDs, "id", nil, "Filter by registry ID (repeatable)")
-	cmdRm.Flags().StringVar(&rmNameMatch, "name", "", "Substring to match against process command")
+	cmdRm.Flags().StringSliceVar(&rmNames, "name", nil, "Match processes with these exact names")
+	cmdRm.Flags().StringVar(&rmSearch, "search", "", "Substring to match against process command")
 	cmdRm.Flags().BoolVar(&rmRemoveAll, "all", false, "Remove every process that matches the selector")
 	cmdRm.Flags().IntVar(&rmTimeoutSecs, "timeout", 3, "Timeout in seconds for list/remove operations")
 }
@@ -44,8 +46,8 @@ var cmdRm = &cobra.Command{
 		if !daemon.IsRunning() {
 			return errors.New("daemon is not running")
 		}
-		if !rmRemoveAll && len(rmTags) == 0 && len(rmGroups) == 0 && len(rmPIDs) == 0 && len(rmIDs) == 0 && rmNameMatch == "" {
-			return errors.New("provide at least one selector (--id/--pid/--tag/--group/--name)")
+		if !rmRemoveAll && len(rmTags) == 0 && len(rmGroups) == 0 && len(rmPIDs) == 0 && len(rmIDs) == 0 && len(rmNames) == 0 && rmSearch == "" {
+			return errors.New("provide at least one selector (--id/--pid/--tag/--group/--name/--search)")
 		}
 		if rmTimeoutSecs <= 0 {
 			return errors.New("timeout must be greater than 0 seconds")
@@ -60,10 +62,20 @@ var cmdRm = &cobra.Command{
 		}
 		defer conn.Close()
 
+		cleanNames := make([]string, 0, len(rmNames))
+		for _, name := range rmNames {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				return errors.New("name filters must not be empty")
+			}
+			cleanNames = append(cleanNames, name)
+		}
+
 		req := &goprocv1.ListRequest{
 			TagsAny:    append([]string(nil), rmTags...),
 			GroupsAny:  append([]string(nil), rmGroups...),
-			TextSearch: rmNameMatch,
+			Names:      cleanNames,
+			TextSearch: rmSearch,
 		}
 		for _, pid := range rmPIDs {
 			if pid <= 0 {
@@ -104,11 +116,16 @@ var cmdRm = &cobra.Command{
 			if _, err := client.Rm(ctx, &goprocv1.RmRequest{Id: proc.GetId()}); err != nil {
 				return fmt.Errorf("remove id %d failed: %w", proc.GetId(), err)
 			}
+			name := proc.GetName()
+			if name == "" {
+				name = "-"
+			}
 			fmt.Fprintf(
 				os.Stdout,
-				"Removed [id=%d] pid=%d cmd=%s tags=[%s] groups=[%s]\n",
+				"Removed [id=%d] pid=%d name=%s cmd=%s tags=[%s] groups=[%s]\n",
 				proc.GetId(),
 				proc.GetPid(),
+				name,
 				proc.GetCmd(),
 				strings.Join(proc.GetTags(), ","),
 				strings.Join(proc.GetGroups(), ","),

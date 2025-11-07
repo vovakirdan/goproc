@@ -72,11 +72,16 @@ var cmdTag = &cobra.Command{
 			return nil
 		}
 		for _, proc := range resp.GetProcs() {
+			name := proc.GetName()
+			if name == "" {
+				name = "-"
+			}
 			fmt.Fprintf(
 				os.Stdout,
-				"[id=%d] pid=%d alive=%t cmd=%s tags=[%s] groups=[%s]\n",
+				"[id=%d] pid=%d name=%s alive=%t cmd=%s tags=[%s] groups=[%s]\n",
 				proc.GetId(),
 				proc.GetPid(),
+				name,
 				proc.GetAlive(),
 				proc.GetCmd(),
 				strings.Join(proc.GetTags(), ","),

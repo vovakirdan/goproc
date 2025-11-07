@@ -5,13 +5,13 @@
 1. **Daemon** — a background service reachable over a per-user UNIX socket. It keeps a registry of processes, persists JSON snapshots, and periodically probes PIDs to mark them alive/dead.
 2. **CLI** — a thin gRPC client that talks to the daemon and exposes user-friendly commands (`add`, `list`, `tag`, …).
 
-The daemon keeps secondary indexes by ID, PID, tag, and group, so queries stay fast even as the registry grows. Each entry receives a monotonic `uint64` ID that survives restarts thanks to snapshots stored near the socket directory.
+The daemon keeps secondary indexes by ID, PID, **name**, tag, and group, so queries stay fast even as the registry grows. Each entry receives a monotonic `uint64` ID that survives restarts thanks to snapshots stored near the socket directory. Names are optional but must be unique—think of them as a human-friendly alias distinct from tags.
 
 ---
 
 ## Build & Install
 
-Requirements: Go 1.24+, `protoc` only if you plan to modify the API.
+Requirements: Go 1.21+, `protoc` only if you plan to modify the API.
 
 ```bash
 git clone <repo>
@@ -70,7 +70,7 @@ Flag:
 - `--timeout, -t <seconds>` (default `2`) — overall RPC timeout.
 
 ### `goproc add <pid>`
-Registers an existing PID with optional tags/groups.
+Registers an existing PID with optional tags/groups and an optional unique name.
 
 Behavior:
 - Validates that the daemon is reachable.
@@ -82,12 +82,13 @@ Behavior:
 Flags:
 - `--tag <name>` (repeatable) — attaches labels to the entry.
 - `--group <name>` (repeatable) — group membership for bulk queries later.
+- `--name <value>` — assigns a unique name; rejected if another entry already uses it.
 
 ### `goproc list`
 Shows the registry, one line per process:
 
 ```
-[id=12] pid=4242 alive=true cmd=pid:4242 tags=[db,read] groups=[prod]
+[id=12] pid=4242 name=db-reader alive=true cmd=pid:4242 tags=[db,read] groups=[prod]
 ```
 
 Filters can be combined:
@@ -100,6 +101,7 @@ Filters can be combined:
 | `--group-all <value>` | Require entries to be in all groups. |
 | `--pid <pid>` | Filter by OS PID (repeatable). |
 | `--id <id>` | Filter by registry ID (repeatable). |
+| `--name <value>` | Filter by exact process name (repeatable). |
 | `--alive` | Only show entries currently deemed alive. |
 | `--search <text>` | Substring match against the stored command. |
 
@@ -109,7 +111,8 @@ When no filters are provided it lists everything.
 Deletes entries from the registry using the same selectors as `list`.
 
 Flags:
-- `--tag`, `--group`, `--pid`, `--id`, `--name` — selectors identical to `list` (`--name` is the search substring).
+- `--tag`, `--group`, `--pid`, `--id`, `--name` — selectors identical to `list`; `--name` matches exact unique names.
+- `--search <text>` — substring search over the stored command (same as `list --search`).
 - `--all` — required if the selectors match more than one entry; prevents accidental mass deletion.
 - `--timeout <seconds>` — RPC timeout (default `3`).
 
@@ -141,10 +144,10 @@ Use this sparingly—every tracked process is forgotten after the reset.
 
 ## Daemon Internals
 
-- **Registry (`internal/registry`)** — thread-safe maps (`byID`, `byPID`, `byTag`, `byGroup`). Every mutation persists a JSON snapshot near the socket (unless snapshots are disabled).
+- **Registry (`internal/registry`)** — thread-safe maps (`byID`, `byPID`, `byName`, `byTag`, `byGroup`). Every mutation persists a JSON snapshot near the socket (unless snapshots are disabled).
 - **Liveness ticker** — interval configurable via config/env. Each tick performs `kill(pid, 0)` and updates the `Alive` flag and `LastSeen`.
 - **Snapshots** — stored as `goproc.snapshot.json`. On startup the daemon loads the snapshot to reconstruct the registry. The new `reset` command clears the snapshot as well.
-- **Process metadata** — monotonic `uint64` IDs, PID, PGID, command string (`pid:<pid>` for now), tags, groups, and timestamps.
+- **Process metadata** — monotonic `uint64` IDs, PID, PGID, optional unique name, command string (`pid:<pid>` for now), tags, groups, and timestamps.
 
 ---
 

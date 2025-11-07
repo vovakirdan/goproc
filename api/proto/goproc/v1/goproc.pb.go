@@ -106,6 +106,7 @@ type AddRequest struct {
 	Pid           int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"` // MVP: just a PID
 	Tags          []string               `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty"`
 	Groups        []string               `protobuf:"bytes,3,rep,name=groups,proto3" json:"groups,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"` // optional unique name
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -159,6 +160,13 @@ func (x *AddRequest) GetGroups() []string {
 		return x.Groups
 	}
 	return nil
+}
+
+func (x *AddRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 type AddResponse struct {
@@ -215,6 +223,7 @@ type ListRequest struct {
 	GroupsAll     []string               `protobuf:"bytes,6,rep,name=groups_all,json=groupsAll,proto3" json:"groups_all,omitempty"`
 	AliveOnly     bool                   `protobuf:"varint,7,opt,name=alive_only,json=aliveOnly,proto3" json:"alive_only,omitempty"`
 	TextSearch    string                 `protobuf:"bytes,8,opt,name=text_search,json=textSearch,proto3" json:"text_search,omitempty"`
+	Names         []string               `protobuf:"bytes,9,rep,name=names,proto3" json:"names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -305,6 +314,13 @@ func (x *ListRequest) GetTextSearch() string {
 	return ""
 }
 
+func (x *ListRequest) GetNames() []string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
 type Proc struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -315,7 +331,8 @@ type Proc struct {
 	Tags          []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
 	Groups        []string               `protobuf:"bytes,7,rep,name=groups,proto3" json:"groups,omitempty"`
 	AddedAtUnix   int64                  `protobuf:"varint,8,opt,name=added_at_unix,json=addedAtUnix,proto3" json:"added_at_unix,omitempty"`
-	LastSeenUnix  int64                  `protobuf:"varint,9,opt,name=last_seen_unix,json=lastSeenUnix,proto3" json:"last_seen_unix,omitempty"` // Metrics will be added later (cpu%, rss, io)
+	LastSeenUnix  int64                  `protobuf:"varint,9,opt,name=last_seen_unix,json=lastSeenUnix,proto3" json:"last_seen_unix,omitempty"`
+	Name          string                 `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"` // Metrics will be added later (cpu%, rss, io)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -411,6 +428,13 @@ func (x *Proc) GetLastSeenUnix() int64 {
 		return x.LastSeenUnix
 	}
 	return 0
+}
+
+func (x *Proc) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 type ListResponse struct {
@@ -926,14 +950,15 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	" api/proto/goproc/v1/goproc.proto\x12\tgoproc.v1\"\r\n" +
 	"\vPingRequest\"\x1e\n" +
 	"\fPingResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\tR\x02ok\"J\n" +
+	"\x02ok\x18\x01 \x01(\tR\x02ok\"^\n" +
 	"\n" +
 	"AddRequest\x12\x10\n" +
 	"\x03pid\x18\x01 \x01(\x05R\x03pid\x12\x12\n" +
 	"\x04tags\x18\x02 \x03(\tR\x04tags\x12\x16\n" +
-	"\x06groups\x18\x03 \x03(\tR\x06groups\"\x1d\n" +
+	"\x06groups\x18\x03 \x03(\tR\x06groups\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\"\x1d\n" +
 	"\vAddResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x04R\x02id\"\xe7\x01\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\"\xfd\x01\n" +
 	"\vListRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\x04R\x03ids\x12\x12\n" +
 	"\x04pids\x18\x02 \x03(\x05R\x04pids\x12\x19\n" +
@@ -946,7 +971,8 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\n" +
 	"alive_only\x18\a \x01(\bR\taliveOnly\x12\x1f\n" +
 	"\vtext_search\x18\b \x01(\tR\n" +
-	"textSearch\"\xda\x01\n" +
+	"textSearch\x12\x14\n" +
+	"\x05names\x18\t \x03(\tR\x05names\"\xee\x01\n" +
 	"\x04Proc\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x10\n" +
 	"\x03pid\x18\x02 \x01(\x05R\x03pid\x12\x12\n" +
@@ -956,7 +982,9 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\x04tags\x18\x06 \x03(\tR\x04tags\x12\x16\n" +
 	"\x06groups\x18\a \x03(\tR\x06groups\x12\"\n" +
 	"\radded_at_unix\x18\b \x01(\x03R\vaddedAtUnix\x12$\n" +
-	"\x0elast_seen_unix\x18\t \x01(\x03R\flastSeenUnix\"5\n" +
+	"\x0elast_seen_unix\x18\t \x01(\x03R\flastSeenUnix\x12\x12\n" +
+	"\x04name\x18\n" +
+	" \x01(\tR\x04name\"5\n" +
 	"\fListResponse\x12%\n" +
 	"\x05procs\x18\x01 \x03(\v2\x0f.goproc.v1.ProcR\x05procs\"=\n" +
 	"\vKillRequest\x12\x10\n" +

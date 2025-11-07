@@ -59,7 +59,7 @@ func (s *service) Add(ctx context.Context, req *goprocv1.AddRequest) (*goprocv1.
 		return nil, status.Errorf(codes.NotFound, "pid %d not found or no permission: %v", pid, err)
 	}
 
-	id, existed, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetTags(), req.GetGroups())
+	id, existed, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetName(), req.GetTags(), req.GetGroups())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add failed: %v", err)
 	}
@@ -77,6 +77,7 @@ func (s *service) List(ctx context.Context, req *goprocv1.ListRequest) (*goprocv
 		GroupsAll:  req.GetGroupsAll(),
 		AliveOnly:  req.GetAliveOnly(),
 		TextSearch: req.GetTextSearch(),
+		Names:      req.GetNames(),
 	}
 	if ids := req.GetIds(); len(ids) > 0 {
 		filter.IDs = make([]registry.ProcID, 0, len(ids))
@@ -107,6 +108,7 @@ func (s *service) List(ctx context.Context, req *goprocv1.ListRequest) (*goprocv
 			Groups:       append([]string(nil), p.Meta.Groups...),
 			AddedAtUnix:  p.AddedAt.Unix(),
 			LastSeenUnix: p.LastSeen.Unix(),
+			Name:         p.Name,
 		})
 	}
 	return resp, nil

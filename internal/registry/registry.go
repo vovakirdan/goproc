@@ -17,6 +17,7 @@ type Registry struct {
 	nextID  ProcID
 	byID    map[ProcID]*Proc
 	byPID   map[int]ProcID
+	byName  map[string]ProcID
 	byTag   map[string]map[ProcID]struct{}
 	byGroup map[string]map[ProcID]struct{}
 	// Interval between persisted lastSeen bumps while a process remains alive.
@@ -35,6 +36,7 @@ func New(snapshotPath string, lastSeenInterval time.Duration) (*Registry, error)
 		nextID:           1,
 		byID:             make(map[ProcID]*Proc),
 		byPID:            make(map[int]ProcID),
+		byName:           make(map[string]ProcID),
 		byTag:            make(map[string]map[ProcID]struct{}),
 		byGroup:          make(map[string]map[ProcID]struct{}),
 		SnapshotPath:     snapshotPath,
@@ -49,15 +51,25 @@ func New(snapshotPath string, lastSeenInterval time.Duration) (*Registry, error)
 }
 
 // AddByPID registers an existing process. Returns the ID plus a flag indicating whether it already existed.
-func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (ProcID, bool, error) {
+func (r *Registry) AddByPID(pid, pgid int, cmd, name string, tags, groups []string) (ProcID, bool, error) {
 	if pid <= 0 {
 		return 0, false, errors.New("pid must be > 0")
+	}
+	normName, err := normalizeName(name)
+	if err != nil {
+		return 0, false, err
 	}
 
 	r.mu.Lock()
 	if id, ok := r.byPID[pid]; ok {
 		r.mu.Unlock()
 		return id, true, nil
+	}
+	if normName != "" {
+		if _, exists := r.byName[normName]; exists {
+			r.mu.Unlock()
+			return 0, false, fmt.Errorf("name %q is already in use", normName)
+		}
 	}
 	id := r.nextID
 	r.nextID++
@@ -67,6 +79,7 @@ func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (P
 		PID:      pid,
 		PGID:     pgid,
 		Cmd:      cmd,
+		Name:     normName,
 		Alive:    true, // optimistic; can be updated by watcher later
 		AddedAt:  now(),
 		LastSeen: now(),
@@ -74,6 +87,9 @@ func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (P
 	}
 	r.byID[id] = p
 	r.byPID[pid] = id
+	if normName != "" {
+		r.byName[normName] = id
+	}
 	for _, t := range p.Meta.Tags {
 		if _, ok := r.byTag[t]; !ok {
 			r.byTag[t] = make(map[ProcID]struct{})
@@ -199,6 +215,9 @@ func (r *Registry) Remove(id ProcID) bool {
 	}
 	delete(r.byID, id)
 	delete(r.byPID, p.PID)
+	if p.Name != "" {
+		delete(r.byName, p.Name)
+	}
 	for _, t := range p.Meta.Tags {
 		delete(r.byTag[t], id)
 		if len(r.byTag[t]) == 0 {
@@ -351,6 +370,7 @@ func (r *Registry) Reset() {
 	r.nextID = 1
 	r.byID = make(map[ProcID]*Proc)
 	r.byPID = make(map[int]ProcID)
+	r.byName = make(map[string]ProcID)
 	r.byTag = make(map[string]map[ProcID]struct{})
 	r.byGroup = make(map[string]map[ProcID]struct{})
 	r.mu.Unlock()
@@ -397,6 +417,18 @@ func (r *Registry) List(f ListFilter) []Proc {
 		}
 		ids = filterIDs(ids, func(id ProcID) bool {
 			_, ok := pidSet[r.byID[id].PID]
+			return ok
+		})
+	}
+	if len(f.Names) > 0 {
+		nameSet := make(map[ProcID]struct{}, len(f.Names))
+		for _, name := range f.Names {
+			if id, ok := r.byName[name]; ok {
+				nameSet[id] = struct{}{}
+			}
+		}
+		ids = filterIDs(ids, func(id ProcID) bool {
+			_, ok := nameSet[id]
 			return ok
 		})
 	}

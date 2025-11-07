@@ -24,6 +24,7 @@ message AddRequest  {
   int32 pid = 1;         // MVP: just a PID
   repeated string tags = 2;
   repeated string groups = 3;
+  string name = 4;       // optional unique name
 }
 message AddResponse { uint64 id = 1; }         // internal id
 
@@ -36,6 +37,7 @@ message ListRequest {
   repeated string groups_all = 6;
   bool alive_only = 7;
   string text_search = 8;
+  repeated string names = 9;
 }
 message Proc {
   uint64 id  = 1;
@@ -47,6 +49,7 @@ message Proc {
   repeated string groups = 7;
   int64 added_at_unix = 8;
   int64 last_seen_unix = 9;
+  string name = 10;
   // Metrics will be added later (cpu%, rss, io)
 }
 message ListResponse { repeated Proc procs = 1; }
