@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -44,11 +45,13 @@ type Model struct {
 
 // New constructs a TUI model with default styles.
 func New(ctrl Controller) *Model {
-	delegate := list.NewDefaultDelegate()
+	delegate := newProcessDelegate()
 	lst := list.New([]list.Item{}, delegate, 0, 0)
 	lst.Title = "Processes"
 	lst.SetShowHelp(false)
+	lst.SetShowStatusBar(false)
 	lst.SetFilteringEnabled(false)
+	lst.SetShowPagination(false)
 	lst.DisableQuitKeybindings()
 
 	return &Model{
@@ -213,25 +216,11 @@ type processItem struct {
 }
 
 func (p processItem) Title() string {
-	name := p.Process.Name
-	if name == "" {
-		name = "-"
-	}
-	alive := "dead"
-	if p.Process.Alive {
-		alive = "alive"
-	}
-	mark := " "
-	if p.Selected {
-		mark = "✓"
-	}
-	return fmt.Sprintf("[%s] [id=%d pid=%d] %s (%s)", mark, p.Process.ID, p.Process.PID, name, alive)
+	return valueOrDash(p.Process.Name)
 }
 
 func (p processItem) Description() string {
-	tags := strings.Join(p.Process.Tags, ",")
-	groups := strings.Join(p.Process.Groups, ",")
-	return fmt.Sprintf("cmd=%s | tags=[%s] groups=[%s]", p.Process.Cmd, tags, groups)
+	return p.Process.Cmd
 }
 
 func (p processItem) FilterValue() string {
@@ -286,6 +275,87 @@ func valueOrDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+type processDelegate struct {
+	styles processItemStyles
+}
+
+type processItemStyles struct {
+	title         lipgloss.Style
+	selectedTitle lipgloss.Style
+	desc          lipgloss.Style
+	selectedDesc  lipgloss.Style
+	meta          lipgloss.Style
+	selectedMeta  lipgloss.Style
+	alive         lipgloss.Style
+	dead          lipgloss.Style
+	indicator     lipgloss.Style
+	bullet        lipgloss.Style
+}
+
+func newProcessDelegate() list.ItemDelegate {
+	styles := processItemStyles{
+		title:         lipgloss.NewStyle().Foreground(lipgloss.Color("249")),
+		selectedTitle: lipgloss.NewStyle().Foreground(lipgloss.Color("212")).Bold(true),
+		desc:          lipgloss.NewStyle().Foreground(lipgloss.Color("244")),
+		selectedDesc:  lipgloss.NewStyle().Foreground(lipgloss.Color("251")),
+		meta:          lipgloss.NewStyle().Foreground(lipgloss.Color("239")),
+		selectedMeta:  lipgloss.NewStyle().Foreground(lipgloss.Color("250")),
+		alive:         lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true),
+		dead:          lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true),
+		indicator:     lipgloss.NewStyle().Foreground(lipgloss.Color("212")).Bold(true),
+		bullet:        lipgloss.NewStyle().Foreground(lipgloss.Color("238")),
+	}
+	return processDelegate{styles: styles}
+}
+
+func (d processDelegate) Height() int { return 3 }
+
+func (d processDelegate) Spacing() int { return 1 }
+
+func (d processDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+
+func (d processDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	item, ok := listItem.(processItem)
+	if !ok {
+		return
+	}
+
+	selected := index == m.Index()
+
+	indicator := "∙"
+	if item.Selected {
+		indicator = "●"
+	}
+	indicatorRendered := d.styles.bullet.Render(indicator)
+	if selected {
+		indicatorRendered = d.styles.indicator.Render(indicator)
+	}
+
+	statusText := "dead"
+	statusStyle := d.styles.dead
+	if item.Process.Alive {
+		statusText = "alive"
+		statusStyle = d.styles.alive
+	}
+
+	titleStyle := d.styles.title
+	descStyle := d.styles.desc
+	metaStyle := d.styles.meta
+	if selected {
+		titleStyle = d.styles.selectedTitle
+		descStyle = d.styles.selectedDesc
+		metaStyle = d.styles.selectedMeta
+	}
+
+	title := fmt.Sprintf("%s  pid=%d  %s", valueOrDash(item.Process.Name), item.Process.PID, statusStyle.Render(statusText))
+	desc := fmt.Sprintf("cmd: %s", item.Process.Cmd)
+	meta := fmt.Sprintf("tags: [%s]  groups: [%s]", strings.Join(item.Process.Tags, ","), strings.Join(item.Process.Groups, ","))
+
+	fmt.Fprintf(w, "%s %s\n", indicatorRendered, titleStyle.Render(title))
+	fmt.Fprintf(w, "  %s\n", descStyle.Render(desc))
+	fmt.Fprintf(w, "  %s\n", metaStyle.Render(meta))
 }
 
 type daemonStatusMsg struct {
