@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"goproc/internal/app"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +19,10 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "Path to JSON config file")
+}
+
+func controller() *app.App {
+	return app.New(app.Options{ConfigPath: configPath})
 }
 
 func main() {

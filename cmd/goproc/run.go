@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,8 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	goprocv1 "goproc/api/proto/goproc/v1"
-	"goproc/internal/daemon"
+	"goproc/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -38,22 +35,6 @@ var cmdRun = &cobra.Command{
 	Long:  "Starts the provided command, immediately registers the spawned PID with the daemon, and exits while the process keeps running.",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !daemon.IsRunning() {
-			return errors.New("daemon is not running")
-		}
-		if runTimeout <= 0 {
-			return errors.New("timeout must be greater than 0 seconds")
-		}
-
-		ctx, cancel := context.WithTimeout(cmd.Context(), time.Duration(runTimeout)*time.Second)
-		defer cancel()
-
-		client, conn, err := daemon.Dial(ctx)
-		if err != nil {
-			return fmt.Errorf("connect to daemon: %w", err)
-		}
-		defer conn.Close()
-
 		child := exec.Command(args[0], args[1:]...)
 		child.Stdout = os.Stdout
 		child.Stderr = os.Stderr
@@ -66,19 +47,24 @@ var cmdRun = &cobra.Command{
 		defer child.Process.Release()
 
 		name := strings.TrimSpace(runName)
-		req := &goprocv1.AddRequest{
-			Pid:    int32(child.Process.Pid),
-			Tags:   append([]string(nil), runTags...),
-			Groups: append([]string(nil), runGroups...),
-			Name:   name,
-		}
-		resp, err := client.Add(ctx, req)
+		res, err := controller().Add(cmd.Context(), app.AddParams{
+			PID:     child.Process.Pid,
+			Tags:    runTags,
+			Groups:  runGroups,
+			Name:    name,
+			Timeout: time.Duration(runTimeout) * time.Second,
+		})
 		if err != nil {
 			_ = child.Process.Kill()
-			return fmt.Errorf("daemon add RPC failed: %w", err)
+			return err
+		}
+		if res.AlreadyExists {
+			_ = child.Process.Kill()
+			fmt.Fprintln(os.Stdout, res.ExistingReason)
+			return nil
 		}
 
-		fmt.Fprintf(os.Stdout, "Started pid=%d registry id=%d\n", child.Process.Pid, resp.GetId())
+		fmt.Fprintf(os.Stdout, "Started pid=%d registry id=%d\n", child.Process.Pid, res.ID)
 		return nil
 	},
 }

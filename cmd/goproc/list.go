@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	goprocv1 "goproc/api/proto/goproc/v1"
-	"goproc/internal/daemon"
+	"goproc/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -44,76 +41,44 @@ var cmdList = &cobra.Command{
 	Short: "List all processes managed by the daemon",
 	Long:  `Fetches the process registry from the daemon via gRPC.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !daemon.IsRunning() {
-			return errors.New("daemon is not running")
-		}
-
-		ctx, cancel := context.WithTimeout(cmd.Context(), 3*time.Second)
-		defer cancel()
-
-		client, conn, err := daemon.Dial(ctx)
+		procs, err := controller().List(cmd.Context(), app.ListParams{
+			Timeout: 3 * time.Second,
+			Filters: app.ListFilters{
+				TagsAny:    listTagsAny,
+				TagsAll:    listTagsAll,
+				GroupsAny:  listGroupsAny,
+				GroupsAll:  listGroupsAll,
+				Names:      listNames,
+				AliveOnly:  listAliveOnly,
+				TextSearch: listTextSearch,
+				PIDs:       listPIDs,
+				IDs:        listIDs,
+			},
+		})
 		if err != nil {
-			return fmt.Errorf("connect to daemon: %w", err)
-		}
-		defer conn.Close()
-
-		cleanNames := make([]string, 0, len(listNames))
-		for _, name := range listNames {
-			name = strings.TrimSpace(name)
-			if name == "" {
-				return errors.New("name filters must not be empty")
-			}
-			cleanNames = append(cleanNames, name)
+			return err
 		}
 
-		req := &goprocv1.ListRequest{
-			TagsAny:    append([]string(nil), listTagsAny...),
-			TagsAll:    append([]string(nil), listTagsAll...),
-			GroupsAny:  append([]string(nil), listGroupsAny...),
-			GroupsAll:  append([]string(nil), listGroupsAll...),
-			Names:      cleanNames,
-			AliveOnly:  listAliveOnly,
-			TextSearch: listTextSearch,
-		}
-
-		for _, pid := range listPIDs {
-			if pid <= 0 {
-				return fmt.Errorf("invalid pid filter: %d", pid)
-			}
-			req.Pids = append(req.Pids, int32(pid))
-		}
-		for _, id := range listIDs {
-			if id <= 0 {
-				return fmt.Errorf("invalid id filter: %d", id)
-			}
-			req.Ids = append(req.Ids, uint64(id))
-		}
-
-		resp, err := client.List(ctx, req)
-		if err != nil {
-			return fmt.Errorf("daemon list RPC failed: %w", err)
-		}
-
-		if len(resp.GetProcs()) == 0 {
+		if len(procs) == 0 {
 			fmt.Fprintln(os.Stdout, "No processes registered")
 			return nil
 		}
 
-		for _, proc := range resp.GetProcs() {
-			name := proc.GetName()
+		for _, proc := range procs {
+			name := proc.Name
 			if name == "" {
 				name = "-"
 			}
 			fmt.Fprintf(
 				os.Stdout,
 				"[id=%d] pid=%d name=%s alive=%t cmd=%s tags=[%s] groups=[%s]\n",
-				proc.GetId(),
-				proc.GetPid(),
+				proc.ID,
+				proc.PID,
 				name,
-				proc.GetAlive(),
-				proc.GetCmd(),
-				strings.Join(proc.GetTags(), ","),
-				strings.Join(proc.GetGroups(), ","),
+				proc.Alive,
+				proc.Cmd,
+				strings.Join(proc.Tags, ","),
+				strings.Join(proc.Groups, ","),
 			)
 		}
 		return nil

@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	"goproc/internal/app"
-
 	"github.com/spf13/cobra"
 )
 
@@ -28,8 +26,7 @@ var cmdPing = &cobra.Command{
 	Use:   "ping",
 	Short: "Check daemon availability (expects 'pong')",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		controller := app.New(app.Options{ConfigPath: configPath})
-		msg, err := controller.Ping(cmd.Context(), time.Duration(pingTimeoutSeconds)*time.Second)
+		msg, err := controller().Ping(cmd.Context(), time.Duration(pingTimeoutSeconds)*time.Second)
 		if err != nil {
 			return err
 		}
