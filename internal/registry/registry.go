@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const lastSeenUpdateInterval = 30 * time.Second
-
 // Registry is a threadsafe in-memory catalog of tracked processes.
 // Secondary indexes enable cheap queries by PID, tag, and group.
 type Registry struct {
@@ -21,20 +19,26 @@ type Registry struct {
 	byPID   map[int]ProcID
 	byTag   map[string]map[ProcID]struct{}
 	byGroup map[string]map[ProcID]struct{}
+	// Interval between persisted lastSeen bumps while a process remains alive.
+	lastSeenInterval time.Duration
 
 	// Where to snapshot. If empty, snapshotting is disabled.
 	SnapshotPath string
 }
 
 // New loads snapshot if present and returns a ready registry.
-func New(snapshotPath string) (*Registry, error) {
+func New(snapshotPath string, lastSeenInterval time.Duration) (*Registry, error) {
+	if lastSeenInterval <= 0 {
+		lastSeenInterval = 30 * time.Second
+	}
 	r := &Registry{
-		nextID:       1,
-		byID:         make(map[ProcID]*Proc),
-		byPID:        make(map[int]ProcID),
-		byTag:        make(map[string]map[ProcID]struct{}),
-		byGroup:      make(map[string]map[ProcID]struct{}),
-		SnapshotPath: snapshotPath,
+		nextID:           1,
+		byID:             make(map[ProcID]*Proc),
+		byPID:            make(map[int]ProcID),
+		byTag:            make(map[string]map[ProcID]struct{}),
+		byGroup:          make(map[string]map[ProcID]struct{}),
+		SnapshotPath:     snapshotPath,
+		lastSeenInterval: lastSeenInterval,
 	}
 	if snapshotPath != "" {
 		if err := r.loadSnapshot(snapshotPath); err != nil {
@@ -230,7 +234,7 @@ func (r *Registry) SetAlive(id ProcID, alive bool) bool {
 	}
 	if alive {
 		now := now()
-		if p.LastSeen.IsZero() || now.Sub(p.LastSeen) >= lastSeenUpdateInterval {
+		if p.LastSeen.IsZero() || now.Sub(p.LastSeen) >= r.lastSeenInterval {
 			p.LastSeen = now
 			changed = true
 		}

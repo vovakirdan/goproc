@@ -10,6 +10,7 @@ import (
 	"time"
 
 	goprocv1 "goproc/api/proto/goproc/v1"
+	"goproc/internal/config"
 
 	"google.golang.org/grpc"
 )
@@ -49,7 +50,7 @@ func (s *Server) Close() error {
 }
 
 // StartDaemon binds the UNIX socket and serves the gRPC API.
-func StartDaemon() (*Server, error) {
+func StartDaemon(configPath string) (*Server, error) {
 	if err := EnsureRuntimeDir(); err != nil {
 		return nil, err
 	}
@@ -70,12 +71,17 @@ func StartDaemon() (*Server, error) {
 		return nil, err
 	}
 
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		return nil, err
+	}
+
 	srv := &Server{
 		ln:         ln,
 		path:       path,
 		grpcServer: grpc.NewServer(),
 	}
-	svc, err := newService()
+	svc, err := newService(cfg)
 	if err != nil {
 		srv.Close()
 		return nil, err

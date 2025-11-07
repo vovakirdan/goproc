@@ -49,7 +49,7 @@ var cmdDaemon = &cobra.Command{
 		}
 		// 1) Not running, so start it
 		fmt.Fprintln(os.Stdout, "Starting daemon process...") // todo: add spinner
-		srv, err := daemon.StartDaemon()
+		srv, err := daemon.StartDaemon(configPath)
 		if err != nil {
 			return err
 		}

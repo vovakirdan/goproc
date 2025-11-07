@@ -6,10 +6,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "goproc [command]",
-	Short: "goproc: small process watcher",
-	Long:  `goproc is a small process watcher that can be used to monitor and manage processes.`,
+var (
+	rootCmd = &cobra.Command{
+		Use:   "goproc [command]",
+		Short: "goproc: small process watcher",
+		Long:  `goproc is a small process watcher that can be used to monitor and manage processes.`,
+	}
+	configPath string
+)
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "Path to JSON config file")
 }
 
 func main() {

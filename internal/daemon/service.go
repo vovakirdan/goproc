@@ -7,29 +7,30 @@ import (
 	"time"
 
 	goprocv1 "goproc/api/proto/goproc/v1"
+	"goproc/internal/config"
 	"goproc/internal/registry"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const livenessInterval = 10 * time.Second
-
 // service implements the GoProc gRPC service backed by the registry.
 type service struct {
 	goprocv1.UnimplementedGoProcServer
 
+	cfg    config.Config
 	reg    *registry.Registry
 	cancel context.CancelFunc
 }
 
-func newService() (*service, error) {
-	reg, err := registry.New(SnapshotPath())
+func newService(cfg config.Config) (*service, error) {
+	reg, err := registry.New(SnapshotPath(), cfg.LastSeenUpdateInterval)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &service{
+		cfg:    cfg,
 		reg:    reg,
 		cancel: cancel,
 	}
@@ -157,7 +158,11 @@ func pgidOf(pid int) int {
 }
 
 func (s *service) watchLiveness(ctx context.Context) {
-	ticker := time.NewTicker(livenessInterval)
+	interval := s.cfg.LivenessInterval
+	if interval <= 0 {
+		interval = 10 * time.Second
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		select {
