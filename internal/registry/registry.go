@@ -220,10 +220,10 @@ func (r *Registry) Remove(id ProcID) bool {
 // SetAlive updates alive flag (and occasionally lastSeen) for the given process.
 func (r *Registry) SetAlive(id ProcID, alive bool) bool {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	p := r.byID[id]
 	if p == nil {
+		r.mu.Unlock()
 		return false
 	}
 
@@ -239,6 +239,7 @@ func (r *Registry) SetAlive(id ProcID, alive bool) bool {
 			changed = true
 		}
 	}
+	r.mu.Unlock()
 
 	if changed {
 		r.maybeSave()
