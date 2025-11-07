@@ -48,16 +48,16 @@ func New(snapshotPath string, lastSeenInterval time.Duration) (*Registry, error)
 	return r, nil
 }
 
-// AddByPID registers an existing process. Caller supplies PGID/Cmd if known.
-func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (ProcID, error) {
+// AddByPID registers an existing process. Returns the ID plus a flag indicating whether it already existed.
+func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (ProcID, bool, error) {
 	if pid <= 0 {
-		return 0, errors.New("pid must be > 0")
+		return 0, false, errors.New("pid must be > 0")
 	}
 
 	r.mu.Lock()
 	if id, ok := r.byPID[pid]; ok {
 		r.mu.Unlock()
-		return id, nil
+		return id, true, nil
 	}
 	id := r.nextID
 	r.nextID++
@@ -89,7 +89,7 @@ func (r *Registry) AddByPID(pid, pgid int, cmd string, tags, groups []string) (P
 	r.mu.Unlock()
 
 	r.maybeSave()
-	return id, nil
+	return id, false, nil
 }
 
 // Tag adds tags to the proc metadata atomically.
@@ -245,6 +245,104 @@ func (r *Registry) SetAlive(id ProcID, alive bool) bool {
 		r.maybeSave()
 	}
 	return changed
+}
+
+// RenameTag renames a tag across all processes and returns affected count.
+func (r *Registry) RenameTag(from, to string) int {
+	from = strings.TrimSpace(from)
+	to = strings.TrimSpace(to)
+	if from == "" || to == "" || from == to {
+		return 0
+	}
+
+	r.mu.Lock()
+	count := r.renameTagLocked(from, to)
+	r.mu.Unlock()
+
+	if count > 0 {
+		r.maybeSave()
+	}
+	return count
+}
+
+func (r *Registry) renameTagLocked(from, to string) int {
+	ids := r.byTag[from]
+	if len(ids) == 0 {
+		return 0
+	}
+	if _, ok := r.byTag[to]; !ok {
+		r.byTag[to] = make(map[ProcID]struct{})
+	}
+	count := 0
+	for id := range ids {
+		p := r.byID[id]
+		if p == nil {
+			continue
+		}
+		set := toSet(p.Meta.Tags)
+		if _, ok := set[from]; !ok {
+			continue
+		}
+		delete(set, from)
+		set[to] = struct{}{}
+		p.Meta.Tags = setToSlice(set)
+		delete(r.byTag[from], id)
+		r.byTag[to][id] = struct{}{}
+		count++
+	}
+	if len(r.byTag[from]) == 0 {
+		delete(r.byTag, from)
+	}
+	return count
+}
+
+// RenameGroup renames a group label across all processes and returns affected count.
+func (r *Registry) RenameGroup(from, to string) int {
+	from = strings.TrimSpace(from)
+	to = strings.TrimSpace(to)
+	if from == "" || to == "" || from == to {
+		return 0
+	}
+
+	r.mu.Lock()
+	count := r.renameGroupLocked(from, to)
+	r.mu.Unlock()
+
+	if count > 0 {
+		r.maybeSave()
+	}
+	return count
+}
+
+func (r *Registry) renameGroupLocked(from, to string) int {
+	ids := r.byGroup[from]
+	if len(ids) == 0 {
+		return 0
+	}
+	if _, ok := r.byGroup[to]; !ok {
+		r.byGroup[to] = make(map[ProcID]struct{})
+	}
+	count := 0
+	for id := range ids {
+		p := r.byID[id]
+		if p == nil {
+			continue
+		}
+		set := toSet(p.Meta.Groups)
+		if _, ok := set[from]; !ok {
+			continue
+		}
+		delete(set, from)
+		set[to] = struct{}{}
+		p.Meta.Groups = setToSlice(set)
+		delete(r.byGroup[from], id)
+		r.byGroup[to][id] = struct{}{}
+		count++
+	}
+	if len(r.byGroup[from]) == 0 {
+		delete(r.byGroup, from)
+	}
+	return count
 }
 
 // Get returns a copy of a Proc by ID.

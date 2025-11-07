@@ -12,6 +12,8 @@ import (
 	"goproc/internal/daemon"
 
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func init() {
@@ -61,6 +63,10 @@ var cmdAdd = &cobra.Command{
 			Groups: groups,
 		})
 		if err != nil {
+			if st, ok := status.FromError(err); ok && st.Code() == codes.AlreadyExists {
+				fmt.Fprintln(os.Stdout, st.Message())
+				return nil
+			}
 			return fmt.Errorf("daemon add RPC failed: %w", err)
 		}
 

@@ -12,6 +12,8 @@ service GoProc {
   rpc List (ListRequest) returns (ListResponse);
   rpc Kill (KillRequest) returns (KillResponse);
   rpc Rm   (RmRequest)   returns (RmResponse);
+  rpc RenameTag   (RenameTagRequest)   returns (RenameTagResponse);
+  rpc RenameGroup (RenameGroupRequest) returns (RenameGroupResponse);
 }
 
 message PingRequest {}
@@ -53,3 +55,8 @@ message KillResponse {}
 
 message RmRequest   { uint32 id = 1; }
 message RmResponse  {}
+
+message RenameTagRequest   { string from = 1; string to = 2; }
+message RenameTagResponse  { uint32 updated = 1; }
+message RenameGroupRequest { string from = 1; string to = 2; }
+message RenameGroupResponse { uint32 updated = 1; }

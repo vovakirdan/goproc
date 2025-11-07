@@ -44,7 +44,7 @@ var cmdRm = &cobra.Command{
 		if !daemon.IsRunning() {
 			return errors.New("daemon is not running")
 		}
-		if len(rmTags) == 0 && len(rmGroups) == 0 && len(rmPIDs) == 0 && len(rmIDs) == 0 && rmNameMatch == "" {
+		if !rmRemoveAll && len(rmTags) == 0 && len(rmGroups) == 0 && len(rmPIDs) == 0 && len(rmIDs) == 0 && rmNameMatch == "" {
 			return errors.New("provide at least one selector (--id/--pid/--tag/--group/--name)")
 		}
 		if rmTimeoutSecs <= 0 {

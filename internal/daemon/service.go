@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"strings"
 	"syscall"
 	"time"
 
@@ -58,9 +59,12 @@ func (s *service) Add(ctx context.Context, req *goprocv1.AddRequest) (*goprocv1.
 		return nil, status.Errorf(codes.NotFound, "pid %d not found or no permission: %v", pid, err)
 	}
 
-	id, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetTags(), req.GetGroups())
+	id, existed, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetTags(), req.GetGroups())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add failed: %v", err)
+	}
+	if existed {
+		return nil, status.Errorf(codes.AlreadyExists, "pid %d already registered as id %d", pid, id)
 	}
 	return &goprocv1.AddResponse{Id: uint32(id)}, nil
 }
@@ -147,6 +151,32 @@ func (s *service) Rm(ctx context.Context, req *goprocv1.RmRequest) (*goprocv1.Rm
 		return nil, status.Error(codes.NotFound, "id not found")
 	}
 	return &goprocv1.RmResponse{}, nil
+}
+
+func (s *service) RenameTag(ctx context.Context, req *goprocv1.RenameTagRequest) (*goprocv1.RenameTagResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request required")
+	}
+	from := strings.TrimSpace(req.GetFrom())
+	to := strings.TrimSpace(req.GetTo())
+	if from == "" || to == "" {
+		return nil, status.Error(codes.InvalidArgument, "from and to must be provided")
+	}
+	updated := s.reg.RenameTag(from, to)
+	return &goprocv1.RenameTagResponse{Updated: uint32(updated)}, nil
+}
+
+func (s *service) RenameGroup(ctx context.Context, req *goprocv1.RenameGroupRequest) (*goprocv1.RenameGroupResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request required")
+	}
+	from := strings.TrimSpace(req.GetFrom())
+	to := strings.TrimSpace(req.GetTo())
+	if from == "" || to == "" {
+		return nil, status.Error(codes.InvalidArgument, "from and to must be provided")
+	}
+	updated := s.reg.RenameGroup(from, to)
+	return &goprocv1.RenameGroupResponse{Updated: uint32(updated)}, nil
 }
 
 func pgidOf(pid int) int {
