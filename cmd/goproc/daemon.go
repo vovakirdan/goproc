@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"goproc/internal/daemon"
 
+	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -48,18 +50,20 @@ var cmdDaemon = &cobra.Command{
 			}
 		}
 		// 1) Not running, so start it
-		fmt.Fprintln(os.Stdout, "Starting daemon process...") // todo: add spinner
 		srv, err := daemon.StartDaemon(configPath)
 		if err != nil {
 			return err
 		}
-		defer srv.Close()
+		fmt.Fprintln(os.Stdout, "Started demon process")
+		runSpin := spinner.New(spinner.CharSets[21], 120*time.Millisecond, spinner.WithWriter(os.Stdout))
+		runSpin.Suffix = " Running..."
+		runSpin.Start()
 
 		// 2) Wait for SIGINT ot SIGTERN to stop
 		sigc := make(chan os.Signal, 2)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		<-sigc
-		fmt.Fprintln(os.Stdout, "Stopping daemon process...") // todo: add spinner
-		return nil
+		runSpin.Stop()
+		return srv.Close()
 	},
 }
