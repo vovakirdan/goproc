@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -32,7 +31,7 @@ var cmdPing = &cobra.Command{
 		}
 
 		// Нормальный ответ — "pong"
-		fmt.Fprintln(os.Stdout, msg)
+		fmt.Fprintln(cmd.OutOrStdout(), msg)
 		return nil
 	},
 }
