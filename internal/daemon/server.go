@@ -71,7 +71,12 @@ func StartDaemon() (*Server, error) {
 		path:       path,
 		grpcServer: grpc.NewServer(),
 	}
-	goprocv1.RegisterGoProcServer(srv.grpcServer, newService())
+	svc, err := newService()
+	if err != nil {
+		srv.Close()
+		return nil, err
+	}
+	goprocv1.RegisterGoProcServer(srv.grpcServer, svc)
 
 	if err := WritePID(os.Getpid()); err != nil {
 		srv.Close()

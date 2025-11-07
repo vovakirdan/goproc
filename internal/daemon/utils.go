@@ -19,6 +19,7 @@ import (
 const SocketBaseName = "goproc.sock"
 
 const pidFileName = "goproc.pid"
+const snapshotFileName = "goproc.snapshot.json"
 
 // SocketPath returns the full path to the UNIX socket
 // Order of precedence (first wins):
@@ -63,6 +64,11 @@ func EnsureRuntimeDir() error {
 // PIDPath returns the full path to the PID file
 func PIDPath() string {
 	return filepath.Join(filepath.Dir(SocketPath()), pidFileName)
+}
+
+// SnapshotPath returns the path where the registry snapshot is stored.
+func SnapshotPath() string {
+	return filepath.Join(filepath.Dir(SocketPath()), snapshotFileName)
 }
 
 // WritePID stores the provided pid into the pid file
