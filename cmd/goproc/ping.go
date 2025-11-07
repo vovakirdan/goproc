@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
 
-	goprocv1 "goproc/api/proto/goproc/v1"
-	"goproc/internal/daemon"
+	"goproc/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -31,32 +28,14 @@ var cmdPing = &cobra.Command{
 	Use:   "ping",
 	Short: "Check daemon availability (expects 'pong')",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Fast path: короткая проверка наличия сокета и здоровья
-		if !daemon.IsRunning() {
-			return errors.New("daemon is not running")
-		}
-
-		if pingTimeoutSeconds <= 0 {
-			return errors.New("timeout must be greater than 0 seconds")
-		}
-
-		// gRPC Ping с таймаутом
-		ctx, cancel := context.WithTimeout(cmd.Context(), time.Duration(pingTimeoutSeconds)*time.Second)
-		defer cancel()
-
-		client, conn, err := daemon.Dial(ctx)
+		controller := app.New(app.Options{ConfigPath: configPath})
+		msg, err := controller.Ping(cmd.Context(), time.Duration(pingTimeoutSeconds)*time.Second)
 		if err != nil {
-			return fmt.Errorf("connect to daemon: %w", err)
-		}
-		defer conn.Close()
-
-		resp, err := client.Ping(ctx, &goprocv1.PingRequest{})
-		if err != nil {
-			return fmt.Errorf("daemon ping RPC failed: %w", err)
+			return err
 		}
 
 		// Нормальный ответ — "pong"
-		fmt.Fprintln(os.Stdout, resp.GetOk())
+		fmt.Fprintln(os.Stdout, msg)
 		return nil
 	},
 }
