@@ -84,6 +84,18 @@ Flags:
 - `--group <name>` (repeatable) — group membership for bulk queries later.
 - `--name <value>` — assigns a unique name; rejected if another entry already uses it.
 
+### `goproc run -- <command> [args...]`
+Convenience wrapper around `add` that launches a new process, keeps its stdio attached, and registers the freshly spawned PID with the daemon right away.
+
+Behavior:
+- Requires the daemon to be running; the CLI starts the child locally, then calls `Add`.
+- Prints the PID and registry ID once registration succeeds, then exits while the child keeps running.
+- Records the real command line in the registry so it shows up in `list --search` results.
+
+Flags mirror `add` plus a timeout for the daemon RPC:
+- `--tag`, `--group`, `--name` — same semantics as `add`.
+- `--timeout <seconds>` (default `3`) — fail if the daemon cannot be reached fast enough.
+
 ### `goproc list`
 Shows the registry, one line per process:
 

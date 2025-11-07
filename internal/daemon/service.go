@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"syscall"
 	"time"
@@ -59,7 +58,8 @@ func (s *service) Add(ctx context.Context, req *goprocv1.AddRequest) (*goprocv1.
 		return nil, status.Errorf(codes.NotFound, "pid %d not found or no permission: %v", pid, err)
 	}
 
-	id, existed, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetName(), req.GetTags(), req.GetGroups())
+	cmdLine := commandLine(pid)
+	id, existed, err := s.reg.AddByPID(pid, pgidOf(pid), cmdLine, req.GetName(), req.GetTags(), req.GetGroups())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add failed: %v", err)
 	}
