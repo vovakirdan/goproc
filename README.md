@@ -118,6 +118,16 @@ Flags:
 
 Successful removals are echoed back with their ID/PID info.
 
+### `goproc kill`
+Terminates processes that match the provided selectors, then removes them from the registry.
+
+Flags:
+- `--tag`, `--group`, `--name`, `--id`, `--pid` — same selectors as `list`. Only alive entries are terminated.
+- `--all` — acknowledge killing more than one alive match.
+- `--timeout <seconds>` — covers the list/kill/remove RPCs (default `5`).
+
+For each process the command prints whether the kill succeeded and whether the registry entry was removed. If no alive process matches, nothing is sent to the daemon.
+
 ### `goproc tag <name>`
 Lists processes that carry a specific tag and optionally renames that tag across the registry before listing.
 
