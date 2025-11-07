@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"goproc/internal/app"
@@ -26,6 +26,7 @@ type Model struct {
 
 	list      list.Model
 	processes []app.Process
+	selected  map[uint64]bool
 
 	daemonStatus app.DaemonStatus
 	statusMsg    string
@@ -56,6 +57,7 @@ func New(ctrl Controller) *Model {
 		filters:    app.ListFilters{},
 		statusMsg:  "Checking daemon status…",
 		loading:    true,
+		selected:   make(map[uint64]bool),
 	}
 }
 
@@ -100,10 +102,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.err = nil
 		m.processes = msg.processes
+		newSelected := make(map[uint64]bool)
 		items := make([]list.Item, 0, len(msg.processes))
 		for _, proc := range msg.processes {
-			items = append(items, processItem{Process: proc})
+			selected := m.selected[proc.ID]
+			if selected {
+				newSelected[proc.ID] = true
+			}
+			items = append(items, processItem{Process: proc, Selected: selected})
 		}
+		m.selected = newSelected
 		m.list.SetItems(items)
 		m.lastUpdated = time.Now()
 
@@ -126,6 +134,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.daemonStatus.Running {
 				m.statusMsg = "Starting daemon…"
 				return m, startDaemonCmd(m.controller)
+			}
+		case " ":
+			m.toggleCurrentSelection()
+		case "c":
+			if len(m.selected) > 0 {
+				m.clearSelection()
 			}
 		}
 	}
@@ -163,7 +177,26 @@ func (m *Model) View() string {
 		b.WriteByte('\n')
 	}
 
-	help := "Commands: q quit • r reload • s start daemon"
+	if current := m.currentProcess(); current != nil {
+		detail := fmt.Sprintf(
+			"id=%d pid=%d alive=%t\nname=%s\ncmd=%s\ntags=[%s]\ngroups=[%s]",
+			current.ID,
+			current.PID,
+			current.Alive,
+			valueOrDash(current.Name),
+			current.Cmd,
+			strings.Join(current.Tags, ","),
+			strings.Join(current.Groups, ","),
+		)
+		detailStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1).MarginBottom(1)
+		b.WriteString(detailStyle.Render(detail))
+		b.WriteByte('\n')
+	}
+
+	help := "Commands: q quit • r reload • s start daemon • space select • c clear selection"
+	if count := len(m.selected); count > 0 {
+		help += fmt.Sprintf(" • selected=%d", count)
+	}
 	if !m.lastUpdated.IsZero() {
 		help += fmt.Sprintf(" • last update %s", m.lastUpdated.Format(time.Kitchen))
 	}
@@ -175,7 +208,8 @@ func (m *Model) View() string {
 
 // processItem adapts app.Process to the bubbles list item interface.
 type processItem struct {
-	Process app.Process
+	Process  app.Process
+	Selected bool
 }
 
 func (p processItem) Title() string {
@@ -187,7 +221,11 @@ func (p processItem) Title() string {
 	if p.Process.Alive {
 		alive = "alive"
 	}
-	return fmt.Sprintf("[id=%d pid=%d] %s (%s)", p.Process.ID, p.Process.PID, name, alive)
+	mark := " "
+	if p.Selected {
+		mark = "✓"
+	}
+	return fmt.Sprintf("[%s] [id=%d pid=%d] %s (%s)", mark, p.Process.ID, p.Process.PID, name, alive)
 }
 
 func (p processItem) Description() string {
@@ -198,6 +236,56 @@ func (p processItem) Description() string {
 
 func (p processItem) FilterValue() string {
 	return fmt.Sprintf("%d %d %s %s %s", p.Process.ID, p.Process.PID, p.Process.Name, strings.Join(p.Process.Tags, " "), strings.Join(p.Process.Groups, " "))
+}
+
+func (m *Model) toggleCurrentSelection() {
+	if len(m.processes) == 0 {
+		return
+	}
+	idx := m.list.Index()
+	if idx < 0 || idx >= len(m.processes) {
+		return
+	}
+	item, ok := m.list.Items()[idx].(processItem)
+	if !ok {
+		return
+	}
+	if item.Selected {
+		delete(m.selected, item.Process.ID)
+	} else {
+		m.selected[item.Process.ID] = true
+	}
+	item.Selected = !item.Selected
+	m.list.SetItem(idx, item)
+}
+
+func (m *Model) clearSelection() {
+	m.selected = make(map[uint64]bool)
+	items := m.list.Items()
+	for i, it := range items {
+		if pi, ok := it.(processItem); ok && pi.Selected {
+			pi.Selected = false
+			m.list.SetItem(i, pi)
+		}
+	}
+}
+
+func (m *Model) currentProcess() *app.Process {
+	if len(m.processes) == 0 {
+		return nil
+	}
+	idx := m.list.Index()
+	if idx < 0 || idx >= len(m.processes) {
+		return nil
+	}
+	return &m.processes[idx]
+}
+
+func valueOrDash(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "-"
+	}
+	return s
 }
 
 type daemonStatusMsg struct {

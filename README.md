@@ -1,9 +1,10 @@
 # goproc
 
-`goproc` is a small UNIX process watcher made of two pieces:
+`goproc` is a small UNIX process watcher made of three pieces:
 
 1. **Daemon** — a background service reachable over a per-user UNIX socket. It keeps a registry of processes, persists JSON snapshots, and periodically probes PIDs to mark them alive/dead.
 2. **CLI** — a thin gRPC client that talks to the daemon and exposes user-friendly commands (`add`, `list`, `tag`, …).
+3. **TUI** — an interactive Bubble Tea UI that visualizes the registry, lets you filter processes, and (soon) trigger bulk actions directly from the terminal.
 
 The daemon keeps secondary indexes by ID, PID, **name**, tag, and group, so queries stay fast even as the registry grows. Each entry receives a monotonic `uint64` ID that survives restarts thanks to snapshots stored near the socket directory. Names are optional but must be unique—think of them as a human-friendly alias distinct from tags.
 
@@ -16,10 +17,12 @@ Requirements: Go 1.21+, `protoc` only if you plan to modify the API.
 ```bash
 git clone <repo>
 cd goproc
-make build          # produces ./goproc
+make build          # produces ./goproc (CLI)
+go build ./cmd/goproc-daemon   # daemon entrypoint
+go build ./cmd/goproc-tui      # Bubble Tea UI
 ```
 
-You can run commands straight from the repo (`./goproc …`) or move the binary anywhere on your `$PATH`.
+You can run commands straight from the repo (`./goproc …`) or move the binaries anywhere on your `$PATH`. The UI can be launched separately via `./goproc-tui --config <cfg>` and will detect/start the daemon on demand.
 
 ---
 

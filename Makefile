@@ -9,7 +9,15 @@ PROTOC_GEN_GO_GRPC := $(GO_BIN_DIR)/protoc-gen-go-grpc
 
 # Сборка бинарного файла
 build:
+	@echo "Building goproc..."
 	go build -o goproc ./cmd/goproc
+	@echo "Client built."
+	@echo "Building goproc-tui..."
+	go build -o goproc-tui ./cmd/goproc-tui
+	@echo "goproc-tui built."
+	@echo "Building goproc-daemon..."
+	go build -o goproc-daemon ./cmd/goproc-daemon
+	@echo "goproc-daemon built."
 
 # Форматирование кода
 fmt:
