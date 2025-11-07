@@ -18,6 +18,16 @@ func init() {
 	rootCmd.AddCommand(cmdAdd)
 }
 
+var (
+	addTags   []string
+	addGroups []string
+)
+
+func init() {
+	cmdAdd.Flags().StringSliceVar(&addTags, "tag", nil, "Tag to assign to the process (repeatable)")
+	cmdAdd.Flags().StringSliceVar(&addGroups, "group", nil, "Group to assign to the process (repeatable)")
+}
+
 var cmdAdd = &cobra.Command{
 	Use:   "add <pid>",
 	Short: "Register an existing PID with the daemon",
@@ -42,7 +52,14 @@ var cmdAdd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		resp, err := client.Add(ctx, &goprocv1.AddRequest{Pid: int32(pid)})
+		tags := append([]string(nil), addTags...)
+		groups := append([]string(nil), addGroups...)
+
+		resp, err := client.Add(ctx, &goprocv1.AddRequest{
+			Pid:    int32(pid),
+			Tags:   tags,
+			Groups: groups,
+		})
 		if err != nil {
 			return fmt.Errorf("daemon add RPC failed: %w", err)
 		}

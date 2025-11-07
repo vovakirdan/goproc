@@ -19,12 +19,16 @@ type Server struct {
 	ln         net.Listener
 	path       string
 	grpcServer *grpc.Server
+	svc        *service
 }
 
 // Close stops the gRPC server and unlinks the socket.
 func (s *Server) Close() error {
 	var joined error
 
+	if s.svc != nil {
+		s.svc.Close()
+	}
 	if s.grpcServer != nil {
 		s.grpcServer.GracefulStop()
 	}
@@ -76,6 +80,7 @@ func StartDaemon() (*Server, error) {
 		srv.Close()
 		return nil, err
 	}
+	srv.svc = svc
 	goprocv1.RegisterGoProcServer(srv.grpcServer, svc)
 
 	if err := WritePID(os.Getpid()); err != nil {

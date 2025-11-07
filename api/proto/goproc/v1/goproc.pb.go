@@ -103,7 +103,9 @@ func (x *PingResponse) GetOk() string {
 
 type AddRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Pid           int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
+	Pid           int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"` // MVP: just a PID
+	Tags          []string               `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty"`
+	Groups        []string               `protobuf:"bytes,3,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -143,6 +145,20 @@ func (x *AddRequest) GetPid() int32 {
 		return x.Pid
 	}
 	return 0
+}
+
+func (x *AddRequest) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *AddRequest) GetGroups() []string {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
 }
 
 type AddResponse struct {
@@ -191,6 +207,14 @@ func (x *AddResponse) GetId() uint32 {
 
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []uint32               `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	Pids          []int32                `protobuf:"varint,2,rep,packed,name=pids,proto3" json:"pids,omitempty"`
+	TagsAny       []string               `protobuf:"bytes,3,rep,name=tags_any,json=tagsAny,proto3" json:"tags_any,omitempty"`
+	TagsAll       []string               `protobuf:"bytes,4,rep,name=tags_all,json=tagsAll,proto3" json:"tags_all,omitempty"`
+	GroupsAny     []string               `protobuf:"bytes,5,rep,name=groups_any,json=groupsAny,proto3" json:"groups_any,omitempty"`
+	GroupsAll     []string               `protobuf:"bytes,6,rep,name=groups_all,json=groupsAll,proto3" json:"groups_all,omitempty"`
+	AliveOnly     bool                   `protobuf:"varint,7,opt,name=alive_only,json=aliveOnly,proto3" json:"alive_only,omitempty"`
+	TextSearch    string                 `protobuf:"bytes,8,opt,name=text_search,json=textSearch,proto3" json:"text_search,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,13 +249,73 @@ func (*ListRequest) Descriptor() ([]byte, []int) {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{4}
 }
 
+func (x *ListRequest) GetIds() []uint32 {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+func (x *ListRequest) GetPids() []int32 {
+	if x != nil {
+		return x.Pids
+	}
+	return nil
+}
+
+func (x *ListRequest) GetTagsAny() []string {
+	if x != nil {
+		return x.TagsAny
+	}
+	return nil
+}
+
+func (x *ListRequest) GetTagsAll() []string {
+	if x != nil {
+		return x.TagsAll
+	}
+	return nil
+}
+
+func (x *ListRequest) GetGroupsAny() []string {
+	if x != nil {
+		return x.GroupsAny
+	}
+	return nil
+}
+
+func (x *ListRequest) GetGroupsAll() []string {
+	if x != nil {
+		return x.GroupsAll
+	}
+	return nil
+}
+
+func (x *ListRequest) GetAliveOnly() bool {
+	if x != nil {
+		return x.AliveOnly
+	}
+	return false
+}
+
+func (x *ListRequest) GetTextSearch() string {
+	if x != nil {
+		return x.TextSearch
+	}
+	return ""
+}
+
 type Proc struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Pid           int32                  `protobuf:"varint,2,opt,name=pid,proto3" json:"pid,omitempty"`
 	Pgid          int32                  `protobuf:"varint,3,opt,name=pgid,proto3" json:"pgid,omitempty"`
 	Cmd           string                 `protobuf:"bytes,4,opt,name=cmd,proto3" json:"cmd,omitempty"`
-	Alive         bool                   `protobuf:"varint,5,opt,name=alive,proto3" json:"alive,omitempty"` // Metrics will be added later (cpu%, rss, io)
+	Alive         bool                   `protobuf:"varint,5,opt,name=alive,proto3" json:"alive,omitempty"`
+	Tags          []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
+	Groups        []string               `protobuf:"bytes,7,rep,name=groups,proto3" json:"groups,omitempty"`
+	AddedAtUnix   int64                  `protobuf:"varint,8,opt,name=added_at_unix,json=addedAtUnix,proto3" json:"added_at_unix,omitempty"`
+	LastSeenUnix  int64                  `protobuf:"varint,9,opt,name=last_seen_unix,json=lastSeenUnix,proto3" json:"last_seen_unix,omitempty"` // Metrics will be added later (cpu%, rss, io)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +383,34 @@ func (x *Proc) GetAlive() bool {
 		return x.Alive
 	}
 	return false
+}
+
+func (x *Proc) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *Proc) GetGroups() []string {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+func (x *Proc) GetAddedAtUnix() int64 {
+	if x != nil {
+		return x.AddedAtUnix
+	}
+	return 0
+}
+
+func (x *Proc) GetLastSeenUnix() int64 {
+	if x != nil {
+		return x.LastSeenUnix
+	}
+	return 0
 }
 
 type ListResponse struct {
@@ -550,19 +662,37 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	" api/proto/goproc/v1/goproc.proto\x12\tgoproc.v1\"\r\n" +
 	"\vPingRequest\"\x1e\n" +
 	"\fPingResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\tR\x02ok\"\x1e\n" +
+	"\x02ok\x18\x01 \x01(\tR\x02ok\"J\n" +
 	"\n" +
 	"AddRequest\x12\x10\n" +
-	"\x03pid\x18\x01 \x01(\x05R\x03pid\"\x1d\n" +
+	"\x03pid\x18\x01 \x01(\x05R\x03pid\x12\x12\n" +
+	"\x04tags\x18\x02 \x03(\tR\x04tags\x12\x16\n" +
+	"\x06groups\x18\x03 \x03(\tR\x06groups\"\x1d\n" +
 	"\vAddResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\rR\x02id\"\r\n" +
-	"\vListRequest\"d\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"\xe7\x01\n" +
+	"\vListRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\rR\x03ids\x12\x12\n" +
+	"\x04pids\x18\x02 \x03(\x05R\x04pids\x12\x19\n" +
+	"\btags_any\x18\x03 \x03(\tR\atagsAny\x12\x19\n" +
+	"\btags_all\x18\x04 \x03(\tR\atagsAll\x12\x1d\n" +
+	"\n" +
+	"groups_any\x18\x05 \x03(\tR\tgroupsAny\x12\x1d\n" +
+	"\n" +
+	"groups_all\x18\x06 \x03(\tR\tgroupsAll\x12\x1d\n" +
+	"\n" +
+	"alive_only\x18\a \x01(\bR\taliveOnly\x12\x1f\n" +
+	"\vtext_search\x18\b \x01(\tR\n" +
+	"textSearch\"\xda\x01\n" +
 	"\x04Proc\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x10\n" +
 	"\x03pid\x18\x02 \x01(\x05R\x03pid\x12\x12\n" +
 	"\x04pgid\x18\x03 \x01(\x05R\x04pgid\x12\x10\n" +
 	"\x03cmd\x18\x04 \x01(\tR\x03cmd\x12\x14\n" +
-	"\x05alive\x18\x05 \x01(\bR\x05alive\"5\n" +
+	"\x05alive\x18\x05 \x01(\bR\x05alive\x12\x12\n" +
+	"\x04tags\x18\x06 \x03(\tR\x04tags\x12\x16\n" +
+	"\x06groups\x18\a \x03(\tR\x06groups\x12\"\n" +
+	"\radded_at_unix\x18\b \x01(\x03R\vaddedAtUnix\x12$\n" +
+	"\x0elast_seen_unix\x18\t \x01(\x03R\flastSeenUnix\"5\n" +
 	"\fListResponse\x12%\n" +
 	"\x05procs\x18\x01 \x03(\v2\x0f.goproc.v1.ProcR\x05procs\"=\n" +
 	"\vKillRequest\x12\x10\n" +

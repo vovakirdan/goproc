@@ -17,16 +17,33 @@ service GoProc {
 message PingRequest {}
 message PingResponse { string ok = 1; } // "pong"
 
-message AddRequest  { int32 pid = 1; }         // MVP: just a PID
+message AddRequest  {
+  int32 pid = 1;         // MVP: just a PID
+  repeated string tags = 2;
+  repeated string groups = 3;
+}
 message AddResponse { uint32 id = 1; }         // internal id
 
-message ListRequest {}
+message ListRequest {
+  repeated uint32 ids = 1;
+  repeated int32 pids = 2;
+  repeated string tags_any = 3;
+  repeated string tags_all = 4;
+  repeated string groups_any = 5;
+  repeated string groups_all = 6;
+  bool alive_only = 7;
+  string text_search = 8;
+}
 message Proc {
   uint32 id  = 1;
   int32  pid = 2;
   int32  pgid = 3;
   string cmd = 4;
   bool   alive = 5;
+  repeated string tags = 6;
+  repeated string groups = 7;
+  int64 added_at_unix = 8;
+  int64 last_seen_unix = 9;
   // Metrics will be added later (cpu%, rss, io)
 }
 message ListResponse { repeated Proc procs = 1; }

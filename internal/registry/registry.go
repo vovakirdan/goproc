@@ -7,7 +7,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
+
+const lastSeenUpdateInterval = 30 * time.Second
 
 // Registry is a threadsafe in-memory catalog of tracked processes.
 // Secondary indexes enable cheap queries by PID, tag, and group.
@@ -208,6 +211,35 @@ func (r *Registry) Remove(id ProcID) bool {
 
 	r.maybeSave()
 	return true
+}
+
+// SetAlive updates alive flag (and occasionally lastSeen) for the given process.
+func (r *Registry) SetAlive(id ProcID, alive bool) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	p := r.byID[id]
+	if p == nil {
+		return false
+	}
+
+	changed := false
+	if p.Alive != alive {
+		p.Alive = alive
+		changed = true
+	}
+	if alive {
+		now := now()
+		if p.LastSeen.IsZero() || now.Sub(p.LastSeen) >= lastSeenUpdateInterval {
+			p.LastSeen = now
+			changed = true
+		}
+	}
+
+	if changed {
+		r.maybeSave()
+	}
+	return changed
 }
 
 // Get returns a copy of a Proc by ID.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"syscall"
+	"time"
 
 	goprocv1 "goproc/api/proto/goproc/v1"
 	"goproc/internal/registry"
@@ -12,11 +13,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const livenessInterval = 10 * time.Second
+
 // service implements the GoProc gRPC service backed by the registry.
 type service struct {
 	goprocv1.UnimplementedGoProcServer
 
-	reg *registry.Registry
+	reg    *registry.Registry
+	cancel context.CancelFunc
 }
 
 func newService() (*service, error) {
@@ -24,7 +28,19 @@ func newService() (*service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &service{reg: reg}, nil
+	ctx, cancel := context.WithCancel(context.Background())
+	s := &service{
+		reg:    reg,
+		cancel: cancel,
+	}
+	go s.watchLiveness(ctx)
+	return s, nil
+}
+
+func (s *service) Close() {
+	if s.cancel != nil {
+		s.cancel()
+	}
 }
 
 func (s *service) Ping(ctx context.Context, _ *goprocv1.PingRequest) (*goprocv1.PingResponse, error) {
@@ -41,26 +57,51 @@ func (s *service) Add(ctx context.Context, req *goprocv1.AddRequest) (*goprocv1.
 		return nil, status.Errorf(codes.NotFound, "pid %d not found or no permission: %v", pid, err)
 	}
 
-	id, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), nil, nil)
+	id, err := s.reg.AddByPID(pid, pgidOf(pid), fmt.Sprintf("pid:%d", pid), req.GetTags(), req.GetGroups())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add failed: %v", err)
 	}
 	return &goprocv1.AddResponse{Id: uint32(id)}, nil
 }
 
-func (s *service) List(ctx context.Context, _ *goprocv1.ListRequest) (*goprocv1.ListResponse, error) {
-	ps := s.reg.List(registry.ListFilter{})
+func (s *service) List(ctx context.Context, req *goprocv1.ListRequest) (*goprocv1.ListResponse, error) {
+	filter := registry.ListFilter{
+		TagsAny:    req.GetTagsAny(),
+		TagsAll:    req.GetTagsAll(),
+		GroupsAny:  req.GetGroupsAny(),
+		GroupsAll:  req.GetGroupsAll(),
+		AliveOnly:  req.GetAliveOnly(),
+		TextSearch: req.GetTextSearch(),
+	}
+	if ids := req.GetIds(); len(ids) > 0 {
+		filter.IDs = make([]registry.ProcID, 0, len(ids))
+		for _, id := range ids {
+			filter.IDs = append(filter.IDs, registry.ProcID(id))
+		}
+	}
+	if pids := req.GetPids(); len(pids) > 0 {
+		filter.PIDs = make([]int, 0, len(pids))
+		for _, pid := range pids {
+			filter.PIDs = append(filter.PIDs, int(pid))
+		}
+	}
+
+	ps := s.reg.List(filter)
 	resp := &goprocv1.ListResponse{
 		Procs: make([]*goprocv1.Proc, 0, len(ps)),
 	}
 	for i := range ps {
 		p := ps[i]
 		resp.Procs = append(resp.Procs, &goprocv1.Proc{
-			Id:    uint32(p.ID),
-			Pid:   int32(p.PID),
-			Pgid:  int32(p.PGID),
-			Cmd:   p.Cmd,
-			Alive: p.Alive,
+			Id:           uint32(p.ID),
+			Pid:          int32(p.PID),
+			Pgid:         int32(p.PGID),
+			Cmd:          p.Cmd,
+			Alive:        p.Alive,
+			Tags:         append([]string(nil), p.Meta.Tags...),
+			Groups:       append([]string(nil), p.Meta.Groups...),
+			AddedAtUnix:  p.AddedAt.Unix(),
+			LastSeenUnix: p.LastSeen.Unix(),
 		})
 	}
 	return resp, nil
@@ -113,4 +154,25 @@ func pgidOf(pid int) int {
 		return 0
 	}
 	return pgid
+}
+
+func (s *service) watchLiveness(ctx context.Context) {
+	ticker := time.NewTicker(livenessInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.refreshLiveness()
+		}
+	}
+}
+
+func (s *service) refreshLiveness() {
+	procs := s.reg.List(registry.ListFilter{})
+	for _, p := range procs {
+		err := syscall.Kill(p.PID, 0)
+		s.reg.SetAlive(p.ID, err == nil)
+	}
 }
