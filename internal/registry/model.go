@@ -3,7 +3,7 @@ package registry
 import "time"
 
 // ProcID is an internal stable identifier for tracked processes.
-type ProcID uint32
+type ProcID uint64
 
 // ProcMeta holds user-defined labels.
 type ProcMeta struct {

@@ -12,7 +12,7 @@ const snapshotVersion = 1
 
 type snapshot struct {
 	Version int    `json:"version"`
-	NextID  uint32 `json:"next_id"`
+	NextID  uint64 `json:"next_id"`
 	Procs   []Proc `json:"procs"`
 	Created int64  `json:"created_unix"`
 }
@@ -73,7 +73,7 @@ func (r *Registry) saveSnapshot(path string) error {
 	r.mu.RLock()
 	s := snapshot{
 		Version: snapshotVersion,
-		NextID:  uint32(r.nextID),
+		NextID:  uint64(r.nextID),
 		Created: now().Unix(),
 	}
 	s.Procs = make([]Proc, 0, len(r.byID))

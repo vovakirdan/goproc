@@ -66,7 +66,7 @@ func (s *service) Add(ctx context.Context, req *goprocv1.AddRequest) (*goprocv1.
 	if existed {
 		return nil, status.Errorf(codes.AlreadyExists, "pid %d already registered as id %d", pid, id)
 	}
-	return &goprocv1.AddResponse{Id: uint32(id)}, nil
+	return &goprocv1.AddResponse{Id: uint64(id)}, nil
 }
 
 func (s *service) List(ctx context.Context, req *goprocv1.ListRequest) (*goprocv1.ListResponse, error) {
@@ -98,7 +98,7 @@ func (s *service) List(ctx context.Context, req *goprocv1.ListRequest) (*goprocv
 	for i := range ps {
 		p := ps[i]
 		resp.Procs = append(resp.Procs, &goprocv1.Proc{
-			Id:           uint32(p.ID),
+			Id:           uint64(p.ID),
 			Pid:          int32(p.PID),
 			Pgid:         int32(p.PGID),
 			Cmd:          p.Cmd,
@@ -177,6 +177,11 @@ func (s *service) RenameGroup(ctx context.Context, req *goprocv1.RenameGroupRequ
 	}
 	updated := s.reg.RenameGroup(from, to)
 	return &goprocv1.RenameGroupResponse{Updated: uint32(updated)}, nil
+}
+
+func (s *service) Reset(ctx context.Context, _ *goprocv1.ResetRequest) (*goprocv1.ResetResponse, error) {
+	s.reg.Reset()
+	return &goprocv1.ResetResponse{}, nil
 }
 
 func pgidOf(pid int) int {

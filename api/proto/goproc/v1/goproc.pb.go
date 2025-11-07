@@ -163,7 +163,7 @@ func (x *AddRequest) GetGroups() []string {
 
 type AddResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -198,7 +198,7 @@ func (*AddResponse) Descriptor() ([]byte, []int) {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *AddResponse) GetId() uint32 {
+func (x *AddResponse) GetId() uint64 {
 	if x != nil {
 		return x.Id
 	}
@@ -207,7 +207,7 @@ func (x *AddResponse) GetId() uint32 {
 
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ids           []uint32               `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	Ids           []uint64               `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
 	Pids          []int32                `protobuf:"varint,2,rep,packed,name=pids,proto3" json:"pids,omitempty"`
 	TagsAny       []string               `protobuf:"bytes,3,rep,name=tags_any,json=tagsAny,proto3" json:"tags_any,omitempty"`
 	TagsAll       []string               `protobuf:"bytes,4,rep,name=tags_all,json=tagsAll,proto3" json:"tags_all,omitempty"`
@@ -249,7 +249,7 @@ func (*ListRequest) Descriptor() ([]byte, []int) {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ListRequest) GetIds() []uint32 {
+func (x *ListRequest) GetIds() []uint64 {
 	if x != nil {
 		return x.Ids
 	}
@@ -307,7 +307,7 @@ func (x *ListRequest) GetTextSearch() string {
 
 type Proc struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Pid           int32                  `protobuf:"varint,2,opt,name=pid,proto3" json:"pid,omitempty"`
 	Pgid          int32                  `protobuf:"varint,3,opt,name=pgid,proto3" json:"pgid,omitempty"`
 	Cmd           string                 `protobuf:"bytes,4,opt,name=cmd,proto3" json:"cmd,omitempty"`
@@ -350,7 +350,7 @@ func (*Proc) Descriptor() ([]byte, []int) {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *Proc) GetId() uint32 {
+func (x *Proc) GetId() uint64 {
 	if x != nil {
 		return x.Id
 	}
@@ -505,7 +505,7 @@ func (x *KillRequest) GetTarget() isKillRequest_Target {
 	return nil
 }
 
-func (x *KillRequest) GetId() uint32 {
+func (x *KillRequest) GetId() uint64 {
 	if x != nil {
 		if x, ok := x.Target.(*KillRequest_Id); ok {
 			return x.Id
@@ -528,7 +528,7 @@ type isKillRequest_Target interface {
 }
 
 type KillRequest_Id struct {
-	Id uint32 `protobuf:"varint,1,opt,name=id,proto3,oneof"`
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3,oneof"`
 }
 
 type KillRequest_Pid struct {
@@ -577,7 +577,7 @@ func (*KillResponse) Descriptor() ([]byte, []int) {
 
 type RmRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -612,7 +612,7 @@ func (*RmRequest) Descriptor() ([]byte, []int) {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RmRequest) GetId() uint32 {
+func (x *RmRequest) GetId() uint64 {
 	if x != nil {
 		return x.Id
 	}
@@ -847,6 +847,78 @@ func (x *RenameGroupResponse) GetUpdated() uint32 {
 	return 0
 }
 
+type ResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetRequest) Reset() {
+	*x = ResetRequest{}
+	mi := &file_api_proto_goproc_v1_goproc_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetRequest) ProtoMessage() {}
+
+func (x *ResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_goproc_v1_goproc_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetRequest.ProtoReflect.Descriptor instead.
+func (*ResetRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{15}
+}
+
+type ResetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetResponse) Reset() {
+	*x = ResetResponse{}
+	mi := &file_api_proto_goproc_v1_goproc_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetResponse) ProtoMessage() {}
+
+func (x *ResetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_goproc_v1_goproc_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetResponse.ProtoReflect.Descriptor instead.
+func (*ResetResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_goproc_v1_goproc_proto_rawDescGZIP(), []int{16}
+}
+
 var File_api_proto_goproc_v1_goproc_proto protoreflect.FileDescriptor
 
 const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
@@ -861,9 +933,9 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\x04tags\x18\x02 \x03(\tR\x04tags\x12\x16\n" +
 	"\x06groups\x18\x03 \x03(\tR\x06groups\"\x1d\n" +
 	"\vAddResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\rR\x02id\"\xe7\x01\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\"\xe7\x01\n" +
 	"\vListRequest\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\rR\x03ids\x12\x12\n" +
+	"\x03ids\x18\x01 \x03(\x04R\x03ids\x12\x12\n" +
 	"\x04pids\x18\x02 \x03(\x05R\x04pids\x12\x19\n" +
 	"\btags_any\x18\x03 \x03(\tR\atagsAny\x12\x19\n" +
 	"\btags_all\x18\x04 \x03(\tR\atagsAll\x12\x1d\n" +
@@ -876,7 +948,7 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\vtext_search\x18\b \x01(\tR\n" +
 	"textSearch\"\xda\x01\n" +
 	"\x04Proc\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\rR\x02id\x12\x10\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x10\n" +
 	"\x03pid\x18\x02 \x01(\x05R\x03pid\x12\x12\n" +
 	"\x04pgid\x18\x03 \x01(\x05R\x04pgid\x12\x10\n" +
 	"\x03cmd\x18\x04 \x01(\tR\x03cmd\x12\x14\n" +
@@ -888,12 +960,12 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\fListResponse\x12%\n" +
 	"\x05procs\x18\x01 \x03(\v2\x0f.goproc.v1.ProcR\x05procs\"=\n" +
 	"\vKillRequest\x12\x10\n" +
-	"\x02id\x18\x01 \x01(\rH\x00R\x02id\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\x04H\x00R\x02id\x12\x12\n" +
 	"\x03pid\x18\x02 \x01(\x05H\x00R\x03pidB\b\n" +
 	"\x06target\"\x0e\n" +
 	"\fKillResponse\"\x1b\n" +
 	"\tRmRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\rR\x02id\"\f\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\"\f\n" +
 	"\n" +
 	"RmResponse\"6\n" +
 	"\x10RenameTagRequest\x12\x12\n" +
@@ -905,7 +977,9 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\"/\n" +
 	"\x13RenameGroupResponse\x12\x18\n" +
-	"\aupdated\x18\x01 \x01(\rR\aupdated2\xb2\x03\n" +
+	"\aupdated\x18\x01 \x01(\rR\aupdated\"\x0e\n" +
+	"\fResetRequest\"\x0f\n" +
+	"\rResetResponse2\xee\x03\n" +
 	"\x06GoProc\x127\n" +
 	"\x04Ping\x12\x16.goproc.v1.PingRequest\x1a\x17.goproc.v1.PingResponse\x124\n" +
 	"\x03Add\x12\x15.goproc.v1.AddRequest\x1a\x16.goproc.v1.AddResponse\x127\n" +
@@ -913,7 +987,8 @@ const file_api_proto_goproc_v1_goproc_proto_rawDesc = "" +
 	"\x04Kill\x12\x16.goproc.v1.KillRequest\x1a\x17.goproc.v1.KillResponse\x121\n" +
 	"\x02Rm\x12\x14.goproc.v1.RmRequest\x1a\x15.goproc.v1.RmResponse\x12F\n" +
 	"\tRenameTag\x12\x1b.goproc.v1.RenameTagRequest\x1a\x1c.goproc.v1.RenameTagResponse\x12L\n" +
-	"\vRenameGroup\x12\x1d.goproc.v1.RenameGroupRequest\x1a\x1e.goproc.v1.RenameGroupResponseB%Z#goproc/api/proto/goproc/v1;goprocv1b\x06proto3"
+	"\vRenameGroup\x12\x1d.goproc.v1.RenameGroupRequest\x1a\x1e.goproc.v1.RenameGroupResponse\x12:\n" +
+	"\x05Reset\x12\x17.goproc.v1.ResetRequest\x1a\x18.goproc.v1.ResetResponseB%Z#goproc/api/proto/goproc/v1;goprocv1b\x06proto3"
 
 var (
 	file_api_proto_goproc_v1_goproc_proto_rawDescOnce sync.Once
@@ -927,7 +1002,7 @@ func file_api_proto_goproc_v1_goproc_proto_rawDescGZIP() []byte {
 	return file_api_proto_goproc_v1_goproc_proto_rawDescData
 }
 
-var file_api_proto_goproc_v1_goproc_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_api_proto_goproc_v1_goproc_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_api_proto_goproc_v1_goproc_proto_goTypes = []any{
 	(*PingRequest)(nil),         // 0: goproc.v1.PingRequest
 	(*PingResponse)(nil),        // 1: goproc.v1.PingResponse
@@ -944,6 +1019,8 @@ var file_api_proto_goproc_v1_goproc_proto_goTypes = []any{
 	(*RenameTagResponse)(nil),   // 12: goproc.v1.RenameTagResponse
 	(*RenameGroupRequest)(nil),  // 13: goproc.v1.RenameGroupRequest
 	(*RenameGroupResponse)(nil), // 14: goproc.v1.RenameGroupResponse
+	(*ResetRequest)(nil),        // 15: goproc.v1.ResetRequest
+	(*ResetResponse)(nil),       // 16: goproc.v1.ResetResponse
 }
 var file_api_proto_goproc_v1_goproc_proto_depIdxs = []int32{
 	5,  // 0: goproc.v1.ListResponse.procs:type_name -> goproc.v1.Proc
@@ -954,15 +1031,17 @@ var file_api_proto_goproc_v1_goproc_proto_depIdxs = []int32{
 	9,  // 5: goproc.v1.GoProc.Rm:input_type -> goproc.v1.RmRequest
 	11, // 6: goproc.v1.GoProc.RenameTag:input_type -> goproc.v1.RenameTagRequest
 	13, // 7: goproc.v1.GoProc.RenameGroup:input_type -> goproc.v1.RenameGroupRequest
-	1,  // 8: goproc.v1.GoProc.Ping:output_type -> goproc.v1.PingResponse
-	3,  // 9: goproc.v1.GoProc.Add:output_type -> goproc.v1.AddResponse
-	6,  // 10: goproc.v1.GoProc.List:output_type -> goproc.v1.ListResponse
-	8,  // 11: goproc.v1.GoProc.Kill:output_type -> goproc.v1.KillResponse
-	10, // 12: goproc.v1.GoProc.Rm:output_type -> goproc.v1.RmResponse
-	12, // 13: goproc.v1.GoProc.RenameTag:output_type -> goproc.v1.RenameTagResponse
-	14, // 14: goproc.v1.GoProc.RenameGroup:output_type -> goproc.v1.RenameGroupResponse
-	8,  // [8:15] is the sub-list for method output_type
-	1,  // [1:8] is the sub-list for method input_type
+	15, // 8: goproc.v1.GoProc.Reset:input_type -> goproc.v1.ResetRequest
+	1,  // 9: goproc.v1.GoProc.Ping:output_type -> goproc.v1.PingResponse
+	3,  // 10: goproc.v1.GoProc.Add:output_type -> goproc.v1.AddResponse
+	6,  // 11: goproc.v1.GoProc.List:output_type -> goproc.v1.ListResponse
+	8,  // 12: goproc.v1.GoProc.Kill:output_type -> goproc.v1.KillResponse
+	10, // 13: goproc.v1.GoProc.Rm:output_type -> goproc.v1.RmResponse
+	12, // 14: goproc.v1.GoProc.RenameTag:output_type -> goproc.v1.RenameTagResponse
+	14, // 15: goproc.v1.GoProc.RenameGroup:output_type -> goproc.v1.RenameGroupResponse
+	16, // 16: goproc.v1.GoProc.Reset:output_type -> goproc.v1.ResetResponse
+	9,  // [9:17] is the sub-list for method output_type
+	1,  // [1:9] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -983,7 +1062,7 @@ func file_api_proto_goproc_v1_goproc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_goproc_v1_goproc_proto_rawDesc), len(file_api_proto_goproc_v1_goproc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

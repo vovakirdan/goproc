@@ -26,6 +26,7 @@ const (
 	GoProc_Rm_FullMethodName          = "/goproc.v1.GoProc/Rm"
 	GoProc_RenameTag_FullMethodName   = "/goproc.v1.GoProc/RenameTag"
 	GoProc_RenameGroup_FullMethodName = "/goproc.v1.GoProc/RenameGroup"
+	GoProc_Reset_FullMethodName       = "/goproc.v1.GoProc/Reset"
 )
 
 // GoProcClient is the client API for GoProc service.
@@ -42,6 +43,7 @@ type GoProcClient interface {
 	Rm(ctx context.Context, in *RmRequest, opts ...grpc.CallOption) (*RmResponse, error)
 	RenameTag(ctx context.Context, in *RenameTagRequest, opts ...grpc.CallOption) (*RenameTagResponse, error)
 	RenameGroup(ctx context.Context, in *RenameGroupRequest, opts ...grpc.CallOption) (*RenameGroupResponse, error)
+	Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error)
 }
 
 type goProcClient struct {
@@ -122,6 +124,16 @@ func (c *goProcClient) RenameGroup(ctx context.Context, in *RenameGroupRequest, 
 	return out, nil
 }
 
+func (c *goProcClient) Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetResponse)
+	err := c.cc.Invoke(ctx, GoProc_Reset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GoProcServer is the server API for GoProc service.
 // All implementations must embed UnimplementedGoProcServer
 // for forward compatibility.
@@ -136,6 +148,7 @@ type GoProcServer interface {
 	Rm(context.Context, *RmRequest) (*RmResponse, error)
 	RenameTag(context.Context, *RenameTagRequest) (*RenameTagResponse, error)
 	RenameGroup(context.Context, *RenameGroupRequest) (*RenameGroupResponse, error)
+	Reset(context.Context, *ResetRequest) (*ResetResponse, error)
 	mustEmbedUnimplementedGoProcServer()
 }
 
@@ -166,6 +179,9 @@ func (UnimplementedGoProcServer) RenameTag(context.Context, *RenameTagRequest) (
 }
 func (UnimplementedGoProcServer) RenameGroup(context.Context, *RenameGroupRequest) (*RenameGroupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RenameGroup not implemented")
+}
+func (UnimplementedGoProcServer) Reset(context.Context, *ResetRequest) (*ResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Reset not implemented")
 }
 func (UnimplementedGoProcServer) mustEmbedUnimplementedGoProcServer() {}
 func (UnimplementedGoProcServer) testEmbeddedByValue()                {}
@@ -314,6 +330,24 @@ func _GoProc_RenameGroup_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GoProc_Reset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoProcServer).Reset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoProc_Reset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoProcServer).Reset(ctx, req.(*ResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GoProc_ServiceDesc is the grpc.ServiceDesc for GoProc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -348,6 +382,10 @@ var GoProc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RenameGroup",
 			Handler:    _GoProc_RenameGroup_Handler,
+		},
+		{
+			MethodName: "Reset",
+			Handler:    _GoProc_Reset_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

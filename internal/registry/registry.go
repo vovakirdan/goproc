@@ -345,6 +345,19 @@ func (r *Registry) renameGroupLocked(from, to string) int {
 	return count
 }
 
+// Reset clears the registry and resets the ID counter.
+func (r *Registry) Reset() {
+	r.mu.Lock()
+	r.nextID = 1
+	r.byID = make(map[ProcID]*Proc)
+	r.byPID = make(map[int]ProcID)
+	r.byTag = make(map[string]map[ProcID]struct{})
+	r.byGroup = make(map[string]map[ProcID]struct{})
+	r.mu.Unlock()
+
+	r.maybeSave()
+}
+
 // Get returns a copy of a Proc by ID.
 func (r *Registry) Get(id ProcID) (Proc, bool) {
 	r.mu.RLock()

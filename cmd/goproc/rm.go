@@ -75,7 +75,7 @@ var cmdRm = &cobra.Command{
 			if id <= 0 {
 				return fmt.Errorf("invalid id filter: %d", id)
 			}
-			req.Ids = append(req.Ids, uint32(id))
+			req.Ids = append(req.Ids, uint64(id))
 		}
 
 		resp, err := client.List(ctx, req)
