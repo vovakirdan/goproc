@@ -1,51 +1,58 @@
 package daemon
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"syscall"
 	"time"
+
+	goprocv1 "goproc/api/proto/goproc/v1"
+
+	"google.golang.org/grpc"
 )
 
-// Server wraps tje UNIX listener
+// Server wraps the UNIX listener and gRPC server instance.
 type Server struct {
-	ln   net.Listener
-	path string
+	ln         net.Listener
+	path       string
+	grpcServer *grpc.Server
 }
 
-// Close stops the server and unlinks the socket
+// Close stops the gRPC server and unlinks the socket.
 func (s *Server) Close() error {
-	var err error
+	var joined error
+
+	if s.grpcServer != nil {
+		s.grpcServer.GracefulStop()
+	}
 	if s.ln != nil {
-		err = s.ln.Close()
-		if err != nil {
-			return err
+		if err := s.ln.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			joined = errors.Join(joined, err)
 		}
 	}
 	if s.path != "" {
-		err = os.Remove(s.path)
-		if err != nil {
-			return err
+		if err := os.Remove(s.path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			joined = errors.Join(joined, err)
 		}
 	}
-	return RemovePID()
+	if err := RemovePID(); err != nil {
+		joined = errors.Join(joined, err)
+	}
+	return joined
 }
 
-// StartDaemon binds the UNIX socket and serves a tiny PING handler
-// Step 1: just heartbeat for now, no real process registry
+// StartDaemon binds the UNIX socket and serves the gRPC API.
 func StartDaemon() (*Server, error) {
-	EnsureRuntimeDir()
+	if err := EnsureRuntimeDir(); err != nil {
+		return nil, err
+	}
 	path := SocketPath()
 
-	// If stale socket file exists but daemon is not running, remove it
 	if _, err := os.Stat(path); err == nil && !IsRunning() {
-		err = os.Remove(path)
-		if err != nil {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 	}
@@ -54,44 +61,30 @@ func StartDaemon() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = os.Chmod(path, 0o600)
-	if err != nil {
-		ln.Close()
+	if err := os.Chmod(path, 0o600); err != nil {
+		_ = ln.Close()
 		return nil, err
 	}
-	s := &Server{ln: ln, path: path}
+
+	srv := &Server{
+		ln:         ln,
+		path:       path,
+		grpcServer: grpc.NewServer(),
+	}
+	goprocv1.RegisterGoProcServer(srv.grpcServer, newService())
+
 	if err := WritePID(os.Getpid()); err != nil {
-		s.Close()
+		srv.Close()
 		return nil, err
 	}
-	go s.serve()
-	return s, nil
+
+	go srv.serve()
+	return srv, nil
 }
 
 func (s *Server) serve() {
-	for {
-		c, err := s.ln.Accept()
-		if err != nil {
-			return
-		}
-		go handleConnection(c)
-	}
-}
-
-func handleConnection(c net.Conn) {
-	defer c.Close()
-	br := bufio.NewReader(c)
-	line, err := br.ReadString('\n')
-	if err != nil {
-		log.Printf("Error reading line: %v", err)
-		return
-	}
-	req := strings.TrimSpace(line)
-	switch req {
-	case "PING":
-		fmt.Fprint(c, "PONG\n")
-	default:
-		fmt.Fprintf(c, "ERROR: unknown request: %q\n", req)
+	if err := s.grpcServer.Serve(s.ln); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		log.Printf("gRPC server stopped: %v", err)
 	}
 }
 

@@ -1,10 +1,9 @@
 package daemon
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
-	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	goprocv1 "goproc/api/proto/goproc/v1"
 )
 
 // SocetBaseName is the UNIX socket filename
@@ -97,22 +98,22 @@ func RunningPID() (int, error) {
 	return pid, nil
 }
 
-// IsRunning tries to connect to the UNIX socket and returns true if the connection is successful
-func IsRunning() bool { // todo: return bool, error
-	var err error
-	addr := SocketPath()
-	var c net.Conn
-	c, err = net.DialTimeout("unix", addr, 200*time.Millisecond)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return false
-		}
-		log.Printf("Error dialing UNIX socket: %v", err)
+// IsRunning tries to ping the daemon over gRPC and returns true if it responds.
+func IsRunning() bool {
+	if _, err := os.Stat(SocketPath()); err != nil {
 		return false
 	}
-	err = c.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	client, conn, err := Dial(ctx)
 	if err != nil {
-		log.Printf("Error closing connection: %v", err)
+		return false
+	}
+	defer conn.Close()
+
+	if _, err := client.Ping(ctx, &goprocv1.PingRequest{}); err != nil {
 		return false
 	}
 	return true

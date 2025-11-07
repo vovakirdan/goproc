@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package goproc.v1;
+
+option go_package = "goproc/api/proto/goproc/v1;goprocv1";
+
+// Base service for daemon control/queries. Minimal now: Ping/Add/List/Kill/Rm.
+// We'll evolve messages later (tags, metrics, etc.).
+service GoProc {
+  rpc Ping (PingRequest) returns (PingResponse);
+  rpc Add  (AddRequest)  returns (AddResponse);
+  rpc List (ListRequest) returns (ListResponse);
+  rpc Kill (KillRequest) returns (KillResponse);
+  rpc Rm   (RmRequest)   returns (RmResponse);
+}
+
+message PingRequest {}
+message PingResponse { string ok = 1; } // "pong"
+
+message AddRequest  { int32 pid = 1; }         // MVP: just a PID
+message AddResponse { uint32 id = 1; }         // internal id
+
+message ListRequest {}
+message Proc {
+  uint32 id  = 1;
+  int32  pid = 2;
+  int32  pgid = 3;
+  string cmd = 4;
+  bool   alive = 5;
+  // Metrics will be added later (cpu%, rss, io)
+}
+message ListResponse { repeated Proc procs = 1; }
+
+message KillRequest { oneof target { uint32 id = 1; int32 pid = 2; } }
+message KillResponse {}
+
+message RmRequest   { uint32 id = 1; }
+message RmResponse  {}
