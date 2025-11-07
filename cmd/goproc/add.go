@@ -15,9 +15,9 @@ func init() {
 }
 
 var cmdAdd = &cobra.Command{
-	Use: "add <process-name>",
+	Use:   "add <process-name>",
 	Short: "Add a new process to the daemon",
-	Long: `The add command is used to add a new process to the daemon. The process will be started when the daemon is started.`,
+	Long:  `The add command is used to add a new process to the daemon. The process will be started when the daemon is started.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !daemon.IsRunning() {
 			return errors.New("daemon is not running")
